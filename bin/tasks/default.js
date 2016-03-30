@@ -74,6 +74,7 @@ module.exports = function (grunt) {
                     ],
                 },
                 'Tag.js',
+                'Verifier.js',
                 'WebSite.js',
             ],
         },
