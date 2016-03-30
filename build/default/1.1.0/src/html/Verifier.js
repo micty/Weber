@@ -94,6 +94,11 @@ define('Verifier', function (require, module, exports) {
     function ids(html) {
 
         var ids = html.match(/\s+id\s*=\s*["'][\s\S]*?["']/ig);
+        if (!ids) { //没有匹配到 id。
+            return;
+        }
+
+
         var id$stat = {};
 
         ids.forEach(function (item) {
