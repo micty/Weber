@@ -21,7 +21,10 @@ define('Url', function (require, module, exports) {
                 return false;
             }
 
-            return url.indexOf('http://') == 0 || url.indexOf('https://') == 0;
+
+            return url.startsWith('http://')||
+                url.startsWith('https://')||
+                url.startsWith('//');             //这个也是绝对地址
         },
 
         /**

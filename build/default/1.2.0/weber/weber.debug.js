@@ -1,8 +1,8 @@
 /*
 * weber - web develop tool
 * name: default 
-* version: 1.1.0
-* build: 2016-04-07 10:03:10
+* version: 1.2.0
+* build: 2016-04-07 15:16:12
 * files: 50(48)
 *    partial/default/begin.js
 *    core/Module.js
@@ -186,14 +186,14 @@ define('Weber', function (require, module, exports) {
     module.exports = exports = /**@lends Weber*/ {
 
         /**
-        * 名称。 (由 grunt 自动插入)
+        * 名称。 
         */
-        name: 'default', //由 grunt 自动插入
+        name: 'default',
 
         /**
         * 版本号。 (由 grunt 自动插入)
         */
-        version: '1.1.0', //由 grunt 自动插入
+        version: '1.2.0',
 
 
         /**
@@ -5918,6 +5918,14 @@ define('Less', function (require, module, exports) {
 
         }, function (error, output) {
 
+            if (error) {
+                console.log('less 编译错误:'.bgRed, error.message.bgRed);
+                console.log('所在文件: '.bgMagenta, src.bgMagenta);
+
+                console.log(error);
+                throw error;
+            }
+
             var css = output.css;
 
             //less 输出的 css 是两个空格缩进的，此处用这种方式换成4个空格缩进，不知是否安全。
@@ -6480,7 +6488,7 @@ module.exports = Module.require('Weber');
 
     JSON,
 
-    require('miniquery')
+    require('../miniquery')
 
     /*, undefined */
 );

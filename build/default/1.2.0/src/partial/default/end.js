@@ -1,4 +1,4 @@
-﻿
+
 
 //对 Node 暴露的导出对象。
 module.exports = Module.require('Weber');

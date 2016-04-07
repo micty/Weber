@@ -1,4 +1,4 @@
-﻿
+
 /**
 * Weber 框架命名空间
 * @namespace
@@ -13,12 +13,12 @@ define('Weber', function (require, module, exports) {
         /**
         * 名称。 
         */
-        name: /**grunt-name-begin*/''/**grunt-name-end*/,
+        name: 'default',
 
         /**
         * 版本号。 (由 grunt 自动插入)
         */
-        version: /**grunt-version-begin*/''/**grunt-version-end*/,
+        version: '1.2.0',
 
 
         /**
