@@ -2,7 +2,7 @@
 * weber - web develop tool
 * name: default 
 * version: 1.2.0
-* build: 2016-04-07 15:16:12
+* build: 2016-04-22 16:50:51
 * files: 50(48)
 *    partial/default/begin.js
 *    core/Module.js
@@ -2746,8 +2746,9 @@ define('JsList', function (require, module, exports) {
             'file$md5': {}, 
 
 
+            'scriptType': $.String.random(64),  //用于 script 的 type 值。 在防止页面压缩 js 时重复压缩。
             'emitter': new Emitter(this),
-            'watcher': null,    //监控器，首次用到时再创建。
+            'watcher': null,                    //监控器，首次用到时再创建。
 
             'regexp': config.regexp,
             'md5': config.md5,
@@ -3145,13 +3146,21 @@ define('JsList', function (require, module, exports) {
         concat: function (options) {
 
             var meta = mapper.get(this);
+            var list = meta.list;
+            if (list.length == 0) {
+                meta.html = '';
+                return;
+            }
+
+
             if (options === true) { //直接指定了为 true，则使用默认配置。
                 options = meta.concat;
             }
            
 
             var build = meta.build;
-            var list = $.Array.keep(meta.list, function (item) {
+
+            list = $.Array.keep(list, function (item) {
                 return item.file;
             });
 
@@ -3254,6 +3263,12 @@ define('JsList', function (require, module, exports) {
         minify: function (options) {
            
             var meta = mapper.get(this);
+            if (meta.list.length == 0) {
+                meta.html = '';
+                return;
+            }
+
+
             if (options === true) { //直接指定了为 true，则使用默认配置。
                 options = meta.minify;
             }
@@ -3317,6 +3332,10 @@ define('JsList', function (require, module, exports) {
         inline: function (options) {
 
             var meta = mapper.get(this);
+            if (meta.list.length == 0) {
+                meta.html = '';
+                return;
+            }
 
             if (options === true) {//直接指定了为 true，则使用默认配置。
                 options = meta.inline;
@@ -3329,8 +3348,30 @@ define('JsList', function (require, module, exports) {
             if (options.delete) {
                 File.delete(build.file);
             }
-          
-            meta.html = '<script>' + content + '</script>';
+            
+            //添加一个随机的 type 值，变成不可执行的 js 代码，
+            //可以防止在压缩页面时重复压缩本 js 代码。
+            var sample = '<script type="{type}">{content}</script>'
+            meta.html = $.String.format(sample, {
+                'type': meta.scriptType,
+                'content': content,
+            });
+
+        },
+
+        /**
+        * 移除临时添加进去的 script type，恢复成可执行的 script 代码。
+        */
+        removeType: function (master) {
+            var meta = mapper.get(this);
+
+            var tag = $.String.format('<script type="{type}">', {
+                'type': meta.scriptType,
+            });
+
+            console.log(tag);
+            master = master.split(tag).join('<script>'); //replaceAll
+            return master;
         },
 
 
@@ -4176,6 +4217,13 @@ define('LessList', function (require, module, exports) {
             var force = !!list;         //是否强制编译
             list = list || meta.list;
 
+            if (list.length == 0) { //没有 less 文件
+                fn && fn();
+                return;
+            }
+
+
+
             //并行地发起异步的 less 编译
             var $Array = require('Array');
             $Array.parallel({
@@ -4285,6 +4333,13 @@ define('LessList', function (require, module, exports) {
         concat: function (options) {
 
             var meta = mapper.get(this);
+            var list = meta.list;
+            if (list.length == 0) { //没有 less 文件
+                meta.html = '';
+                return;
+            }
+
+
 
             if (options === true) { //直接指定了为 true，则使用默认配置。
                 options = meta.concat;
@@ -4293,7 +4348,7 @@ define('LessList', function (require, module, exports) {
             var build = meta.build;
             var cssDir = meta.cssDir;
             var less$item = meta.less$item;
-            var list = meta.list;
+           
 
             var contents = [];
 
@@ -4362,6 +4417,12 @@ define('LessList', function (require, module, exports) {
 
 
             var meta = mapper.get(this);
+            if (meta.list.length == 0) { //没有 less 文件
+                meta.html = '';
+                fn && fn();
+                return;
+            }
+
 
             if (options === true) { //直接指定了为 true，则使用默认配置。
                 options = meta.minify;
@@ -4796,10 +4857,6 @@ define('MasterPage', function (require, module, exports) {
             JsList.reset();
             JsList.parse(master);
             JsList.get();
-
-            
-
-
             JsList.toHtml();
             master = JsList.mix();
             name$master['JsList'] = master;
@@ -5104,6 +5161,7 @@ define('MasterPage', function (require, module, exports) {
                             master = self.minify(master, minifyHtml);
                         }
 
+                        master = JsList.removeType(master);
                         File.write(meta.dest, master);
                         done && done();
                     }
@@ -6264,6 +6322,7 @@ define('JsList.defaults', /**@lends JsList.defaults*/ {
 
     md5: 4,           //填充模板所使用的 md5 的长度。
     sample: '<script src="{href}"></script>',   //使用的模板。
+
 
     tags: {
         begin: '<!--grunt.js.begin-->',

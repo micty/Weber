@@ -269,6 +269,13 @@ define('LessList', function (require, module, exports) {
             var force = !!list;         //是否强制编译
             list = list || meta.list;
 
+            if (list.length == 0) { //没有 less 文件
+                fn && fn();
+                return;
+            }
+
+
+
             //并行地发起异步的 less 编译
             var $Array = require('Array');
             $Array.parallel({
@@ -378,6 +385,13 @@ define('LessList', function (require, module, exports) {
         concat: function (options) {
 
             var meta = mapper.get(this);
+            var list = meta.list;
+            if (list.length == 0) { //没有 less 文件
+                meta.html = '';
+                return;
+            }
+
+
 
             if (options === true) { //直接指定了为 true，则使用默认配置。
                 options = meta.concat;
@@ -386,7 +400,7 @@ define('LessList', function (require, module, exports) {
             var build = meta.build;
             var cssDir = meta.cssDir;
             var less$item = meta.less$item;
-            var list = meta.list;
+           
 
             var contents = [];
 
@@ -455,6 +469,12 @@ define('LessList', function (require, module, exports) {
 
 
             var meta = mapper.get(this);
+            if (meta.list.length == 0) { //没有 less 文件
+                meta.html = '';
+                fn && fn();
+                return;
+            }
+
 
             if (options === true) { //直接指定了为 true，则使用默认配置。
                 options = meta.minify;

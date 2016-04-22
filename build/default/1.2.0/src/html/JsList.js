@@ -48,8 +48,9 @@ define('JsList', function (require, module, exports) {
             'file$md5': {}, 
 
 
+            'scriptType': $.String.random(64),  //用于 script 的 type 值。 在防止页面压缩 js 时重复压缩。
             'emitter': new Emitter(this),
-            'watcher': null,    //监控器，首次用到时再创建。
+            'watcher': null,                    //监控器，首次用到时再创建。
 
             'regexp': config.regexp,
             'md5': config.md5,
@@ -447,13 +448,21 @@ define('JsList', function (require, module, exports) {
         concat: function (options) {
 
             var meta = mapper.get(this);
+            var list = meta.list;
+            if (list.length == 0) {
+                meta.html = '';
+                return;
+            }
+
+
             if (options === true) { //直接指定了为 true，则使用默认配置。
                 options = meta.concat;
             }
            
 
             var build = meta.build;
-            var list = $.Array.keep(meta.list, function (item) {
+
+            list = $.Array.keep(list, function (item) {
                 return item.file;
             });
 
@@ -556,6 +565,12 @@ define('JsList', function (require, module, exports) {
         minify: function (options) {
            
             var meta = mapper.get(this);
+            if (meta.list.length == 0) {
+                meta.html = '';
+                return;
+            }
+
+
             if (options === true) { //直接指定了为 true，则使用默认配置。
                 options = meta.minify;
             }
@@ -619,6 +634,10 @@ define('JsList', function (require, module, exports) {
         inline: function (options) {
 
             var meta = mapper.get(this);
+            if (meta.list.length == 0) {
+                meta.html = '';
+                return;
+            }
 
             if (options === true) {//直接指定了为 true，则使用默认配置。
                 options = meta.inline;
@@ -631,8 +650,30 @@ define('JsList', function (require, module, exports) {
             if (options.delete) {
                 File.delete(build.file);
             }
-          
-            meta.html = '<script>' + content + '</script>';
+            
+            //添加一个随机的 type 值，变成不可执行的 js 代码，
+            //可以防止在压缩页面时重复压缩本 js 代码。
+            var sample = '<script type="{type}">{content}</script>'
+            meta.html = $.String.format(sample, {
+                'type': meta.scriptType,
+                'content': content,
+            });
+
+        },
+
+        /**
+        * 移除临时添加进去的 script type，恢复成可执行的 script 代码。
+        */
+        removeType: function (master) {
+            var meta = mapper.get(this);
+
+            var tag = $.String.format('<script type="{type}">', {
+                'type': meta.scriptType,
+            });
+
+            console.log(tag);
+            master = master.split(tag).join('<script>'); //replaceAll
+            return master;
         },
 
 

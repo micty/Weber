@@ -135,10 +135,6 @@ define('MasterPage', function (require, module, exports) {
             JsList.reset();
             JsList.parse(master);
             JsList.get();
-
-            
-
-
             JsList.toHtml();
             master = JsList.mix();
             name$master['JsList'] = master;
@@ -443,6 +439,7 @@ define('MasterPage', function (require, module, exports) {
                             master = self.minify(master, minifyHtml);
                         }
 
+                        master = JsList.removeType(master);
                         File.write(meta.dest, master);
                         done && done();
                     }

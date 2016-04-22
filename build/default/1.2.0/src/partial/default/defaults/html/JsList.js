@@ -9,6 +9,7 @@ define('JsList.defaults', /**@lends JsList.defaults*/ {
     md5: 4,           //填充模板所使用的 md5 的长度。
     sample: '<script src="{href}"></script>',   //使用的模板。
 
+
     tags: {
         begin: '<!--grunt.js.begin-->',
         end: '<!--grunt.js.end-->',

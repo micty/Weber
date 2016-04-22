@@ -130,6 +130,7 @@ module.exports = function (grunt) {
             'E:/Kingdee/vGuide/bin/f',
             'E:/Kingdee/house/demo/bin/f',
             'E:/Kingdee/house/admin/bin/f',
+            'E:/Kingdee/house/mobile/bin/f',
             'E:/Kingdee/house/permit/bin/f',
 
         ].forEach(function (dest) {
