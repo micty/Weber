@@ -2,7 +2,7 @@
 * weber - web develop tool
 * name: default 
 * version: 1.2.0
-* build: 2016-04-22 16:50:51
+* build: 2016-05-04 14:30:11
 * files: 50(48)
 *    partial/default/begin.js
 *    core/Module.js
@@ -2746,7 +2746,7 @@ define('JsList', function (require, module, exports) {
             'file$md5': {}, 
 
 
-            'scriptType': $.String.random(64),  //用于 script 的 type 值。 在防止页面压缩 js 时重复压缩。
+            'scriptType': $.String.random(64),  //用于 script 的 type 值。 在页面压缩 js 时防止重复压缩。
             'emitter': new Emitter(this),
             'watcher': null,                    //监控器，首次用到时再创建。
 
@@ -3369,7 +3369,6 @@ define('JsList', function (require, module, exports) {
                 'type': meta.scriptType,
             });
 
-            console.log(tag);
             master = master.split(tag).join('<script>'); //replaceAll
             return master;
         },

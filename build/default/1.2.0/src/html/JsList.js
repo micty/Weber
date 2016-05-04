@@ -48,7 +48,7 @@ define('JsList', function (require, module, exports) {
             'file$md5': {}, 
 
 
-            'scriptType': $.String.random(64),  //用于 script 的 type 值。 在防止页面压缩 js 时重复压缩。
+            'scriptType': $.String.random(64),  //用于 script 的 type 值。 在页面压缩 js 时防止重复压缩。
             'emitter': new Emitter(this),
             'watcher': null,                    //监控器，首次用到时再创建。
 
@@ -671,7 +671,6 @@ define('JsList', function (require, module, exports) {
                 'type': meta.scriptType,
             });
 
-            console.log(tag);
             master = master.split(tag).join('<script>'); //replaceAll
             return master;
         },
