@@ -6,6 +6,8 @@
         'crypto',
         'fs',
         'path',
+        'os',
+        'child_process',
 
         'colors',           //https://github.com/Marak/colors.js
         'gaze',             //文件监控器，https://github.com/shama/gaze

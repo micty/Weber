@@ -71,10 +71,10 @@ define('Weber', function (require, module, exports) {
         /**
         * 提供 website.watch 的快捷方式，用于编译并监控整个站点。
         */
-        watch: function () {
+        watch: function (fn) {
             var WebSite = require('WebSite');
             var website = new WebSite();
-            website.watch();
+            website.watch(fn);
         },
         
 

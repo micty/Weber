@@ -2,7 +2,7 @@
 * weber - web develop tool
 * name: default 
 * version: 1.2.0
-* build: 2016-05-04 14:30:11
+* build: 2016-05-05 15:53:13
 * files: 50(48)
 *    partial/default/begin.js
 *    core/Module.js
@@ -148,6 +148,8 @@ var define = Module.define;
         'crypto',
         'fs',
         'path',
+        'os',
+        'child_process',
 
         'colors',           //https://github.com/Marak/colors.js
         'gaze',             //文件监控器，https://github.com/shama/gaze
@@ -246,10 +248,10 @@ define('Weber', function (require, module, exports) {
         /**
         * 提供 website.watch 的快捷方式，用于编译并监控整个站点。
         */
-        watch: function () {
+        watch: function (fn) {
             var WebSite = require('WebSite');
             var website = new WebSite();
-            website.watch();
+            website.watch(fn);
         },
         
 
@@ -5564,6 +5566,8 @@ define('WebSite', function (require, module, exports) {
             'cssDir': config.cssDir,
             'htdocsDir': config.htdocsDir,
             'buildDir': config.buildDir,
+            'url': config.url,
+            'qr': config.qr,
         };
 
         mapper.set(this, meta);
@@ -5580,7 +5584,7 @@ define('WebSite', function (require, module, exports) {
         /**
         * 构建整个站点。
         */
-        build: function (options) {
+        build: function (options, done) {
             var meta = mapper.get(this);
 
             var masters = options.masters || meta.masters;
@@ -5748,6 +5752,8 @@ define('WebSite', function (require, module, exports) {
 
                     allDone('全部构建完成');
 
+                    done && done();
+
 
                 }
             });
@@ -5861,6 +5867,113 @@ define('WebSite', function (require, module, exports) {
             console.log(masterFiles);
 
 
+        },
+
+ 
+        getUrl: function (dir, query) {
+
+            function getIP() {
+
+                var os = require('os');
+                var name$list = os.networkInterfaces();
+                var all = [];
+
+                for (var name in name$list) {
+                    var list = name$list[name];
+                    all = all.concat(list);
+                }
+
+                var item = all.find(function (item, index) {
+                    return !item.internal &&
+                        item.family == 'IPv4' &&
+                        item.address !== '127.0.0.1'
+                });
+
+                return item ? item.address : '';
+
+            }
+
+            function getDir(dir) {
+                var path = require('path');
+                var cwd = process.cwd();
+
+                dir = path.join(cwd, dir);
+                dir = dir.split('\\').join('/');
+                dir = dir.split(':/')[1];
+
+                return dir;
+            }
+
+
+            var meta = mapper.get(this);
+            var ip = getIP();
+            var dir = getDir(dir);
+
+           
+            if (query) {
+                if (typeof query == 'object') {
+                    query = $.Object.toQueryString(query);
+                }
+                query = '?' + query;
+            }
+
+            var url = $.String.format(meta.url, {
+                'ip': ip,
+                'dir': dir,
+                'query': query || '',
+            });
+
+
+            return url;
+        },
+
+        /**
+        * 打开站点页面。
+        * 已重载 open(query)。
+        * @param
+        */
+        open: function (dir, query) {
+            
+            //重载 open(query)
+            if (typeof dir == 'object') {
+                query = dir;
+                dir = null;
+            }
+
+            var meta = mapper.get(this);
+            dir = dir || meta.htdocsDir;
+
+            var child = require('child_process')
+            var url = this.getUrl(dir, query);
+
+            console.log('打开页面'.bgGreen, url.cyan);
+
+            url = url.split('&').join('^&'); //用于命令行中的 & 必须转义为 ^&
+            child.exec('start ' + url);
+        },
+
+
+
+
+        openQR: function (dir, query) {
+            //重载 open(query)
+            if (typeof dir == 'object') {
+                query = dir;
+                dir = null;
+            }
+
+            var meta = mapper.get(this);
+            dir = dir || meta.htdocsDir;
+
+            var child = require('child_process')
+            var url = this.getUrl(dir, query);
+
+            console.log('打开二维码'.bgGreen, url.cyan);
+
+            url = meta.qr + encodeURIComponent(url);
+            url = url.split('&').join('^&'); //用于命令行中的 & 必须转义为 ^&
+
+            child.exec('start ' + url);
         },
 
     };
@@ -6461,7 +6574,8 @@ define('WebSite.defaults', /**@lends WebSite.defaults*/ {
     htdocsDir: '../htdocs/',
     buildDir: '../build/htdocs/',
     files: '**/*.master.html',
-
+    url: 'http://{ip}/{dir}index.html{query}',
+    qr: 'http://qr.topscan.com/api.php?w=380&text=', 
 });
 
 
