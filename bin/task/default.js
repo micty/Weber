@@ -65,6 +65,13 @@ module.exports = [
             'Tag.js',
             'Verifier.js',
             'WebSite.js',
+            {
+                dir: 'WebSite',
+                files: [
+                    'Log.js',
+                    'Url.js',
+                ],
+            },
         ],
     },
     {

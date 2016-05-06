@@ -19,23 +19,11 @@ define('WebSite', function (require, module, exports) {
 
     var Mapper = $.require('Mapper');
     var Emitter = $.require('Emitter');
-    var Url = $.require('Url');
+
+    var Log = module.require('Log');
+    var Url = module.require('Url');
 
     var mapper = new Mapper();
-
-
-    function seperate() {
-        console.log('------------------------------------------------------------------------------'.magenta);
-    }
-
-    function allDone(s) {
-        console.log(('=================================' + s + '=================================').green);
-    }
-
-    function logArray(list, color) {
-        color = color || 'green';
-        console.log('    ' + list.join('\r\n    ')[color]);
-    }
 
 
 
@@ -93,7 +81,7 @@ define('WebSite', function (require, module, exports) {
             });
 
             console.log('匹配到'.bgGreen, masters.length.toString().cyan, '个模板页:');
-            logArray(masters);
+            Log.logArray(masters);
 
 
             //单独处理需要替换的文件，如 config.js。
@@ -184,7 +172,7 @@ define('WebSite', function (require, module, exports) {
                 data: masters,
 
                 each: function (file, index, done) {
-                    seperate();
+                    Log.seperate();
 
                     console.log('>> 开始构建'.cyan, file);
 
@@ -225,16 +213,16 @@ define('WebSite', function (require, module, exports) {
                         var files = Patterns.getFiles(buildDir, clean);
                         File.delete(files);
 
-                        seperate();
+                        Log.seperate();
                         console.log('清理'.bgMagenta, files.length.toString().cyan, '个文件:');
-                        logArray(files, 'gray');
+                        Log.logArray(files, 'gray');
                     }
                     
 
                     //递归删除空目录
                     Directory.trim(buildDir);
 
-                    allDone('全部构建完成');
+                    Log.allDone('全部构建完成');
 
                     done && done();
 
@@ -262,7 +250,7 @@ define('WebSite', function (require, module, exports) {
             });
 
             console.log('匹配到'.bgGreen, masters.length.toString().cyan, '个模板页:');
-            logArray(masters);
+            Log.logArray(masters);
 
 
             var $Array = require('Array');
@@ -270,7 +258,7 @@ define('WebSite', function (require, module, exports) {
                 data: masters,
                 each: function (file, index, done) {
 
-                    seperate();
+                    Log.seperate();
                     console.log('>> 开始编译'.cyan, file);
 
                     var master = new MasterPage(file, {
@@ -287,7 +275,7 @@ define('WebSite', function (require, module, exports) {
 
                 all: function () {  //已全部完成
                    
-                    allDone('全部编译完成');
+                    Log.allDone('全部编译完成');
                     Watcher.log();
 
                     done && done();
@@ -353,111 +341,51 @@ define('WebSite', function (require, module, exports) {
 
         },
 
- 
-        getUrl: function (dir, query) {
-
-            function getIP() {
-
-                var os = require('os');
-                var name$list = os.networkInterfaces();
-                var all = [];
-
-                for (var name in name$list) {
-                    var list = name$list[name];
-                    all = all.concat(list);
-                }
-
-                var item = all.find(function (item, index) {
-                    return !item.internal &&
-                        item.family == 'IPv4' &&
-                        item.address !== '127.0.0.1'
-                });
-
-                return item ? item.address : '';
-
-            }
-
-            function getDir(dir) {
-                var path = require('path');
-                var cwd = process.cwd();
-
-                dir = path.join(cwd, dir);
-                dir = dir.split('\\').join('/');
-                dir = dir.split(':/')[1];
-
-                return dir;
-            }
-
-
-            var meta = mapper.get(this);
-            var ip = getIP();
-            var dir = getDir(dir);
-
-           
-            if (query) {
-                if (typeof query == 'object') {
-                    query = $.Object.toQueryString(query);
-                }
-                query = '?' + query;
-            }
-
-            var url = $.String.format(meta.url, {
-                'ip': ip,
-                'dir': dir,
-                'query': query || '',
-            });
-
-
-            return url;
-        },
-
         /**
         * 打开站点页面。
-        * 已重载 open(query)。
         * @param
         */
-        open: function (dir, query) {
-            
-            //重载 open(query)
-            if (typeof dir == 'object') {
-                query = dir;
-                dir = null;
-            }
-
+        open: function (options) {
+   
             var meta = mapper.get(this);
-            dir = dir || meta.htdocsDir;
 
-            var child = require('child_process')
-            var url = this.getUrl(dir, query);
+            options = $.Object.extend({}, options, {
+                'tips': '打开页面',
+                'sample': meta.url,
+                'dir': options.dir || meta.htdocsDir,
+            });
 
-            console.log('打开页面'.bgGreen, url.cyan);
-
-            url = url.split('&').join('^&'); //用于命令行中的 & 必须转义为 ^&
-            child.exec('start ' + url);
+            Url.open(options);
         },
 
 
+        openQR: function (options) {
 
+            options = options || {};
 
-        openQR: function (dir, query) {
-            //重载 open(query)
-            if (typeof dir == 'object') {
-                query = dir;
-                dir = null;
-            }
 
             var meta = mapper.get(this);
-            dir = dir || meta.htdocsDir;
 
-            var child = require('child_process')
-            var url = this.getUrl(dir, query);
+            var url = Url.get({
+                'sample': meta.url,
+                'dir': options.dir || meta.htdocsDir,
+                'query': options.query,
+                'host': options.host,
+            });
+
+            var qr = meta.qr;
+
+            options = $.Object.extend({}, options, {
+                'sample': qr.url,
+                'query': {
+                    'w': options.width || qr.width,
+                    'text': url,
+                },
+            });
 
             console.log('打开二维码'.bgGreen, url.cyan);
 
-            url = meta.qr + encodeURIComponent(url);
-            url = url.split('&').join('^&'); //用于命令行中的 & 必须转义为 ^&
-
-            child.exec('start ' + url);
+            Url.open(options);
         },
 
     };

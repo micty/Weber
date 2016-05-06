@@ -8,7 +8,10 @@ define('WebSite.defaults', /**@lends WebSite.defaults*/ {
     htdocsDir: '../htdocs/',
     buildDir: '../build/htdocs/',
     files: '**/*.master.html',
-    url: 'http://{ip}/{dir}index.html{query}',
-    qr: 'http://qr.topscan.com/api.php?w=380&text=', 
+    url: 'http://{host}/{dir}index.html{query}',
+    qr: {
+        width: 380,
+        url: 'http://qr.topscan.com/api.php{query}',
+    },
 });
 
