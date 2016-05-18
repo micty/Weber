@@ -1,9 +1,9 @@
 /*
 * weber - web develop tool
 * name: default 
-* version: 1.2.0
-* build: 2016-05-11 14:42:49
-* files: 52(50)
+* version: 1.3.0
+* build: 2016-05-18 17:32:49
+* files: 54(52)
 *    partial/default/begin.js
 *    core/Module.js
 *    core/Node.js
@@ -27,6 +27,7 @@
 *    html/HtmlList.js
 *    html/JsList.js
 *    html/JsScripts.js
+*    html/LessLinks.js
 *    html/LessList.js
 *    html/Lines.js
 *    html/MasterPage.js
@@ -50,6 +51,7 @@
 *    partial/default/defaults/html/HtmlList.js
 *    partial/default/defaults/html/JsList.js
 *    partial/default/defaults/html/JsScripts.js
+*    partial/default/defaults/html/LessLinks.js
 *    partial/default/defaults/html/LessList.js
 *    partial/default/defaults/html/MasterPage.js
 *    partial/default/defaults/html/WebSite.js
@@ -197,7 +199,7 @@ define('Weber', function (require, module, exports) {
         /**
         * 版本号。 (由 grunt 自动插入)
         */
-        version: '1.2.0',
+        version: '1.3.0',
 
 
         /**
@@ -3951,6 +3953,493 @@ define('JsScripts', function (require, module, exports) {
 
 
 /**
+* 静态 less 资源文件列表。
+*/
+define('LessLinks', function (require, module, exports) {
+
+    var $ = require('$');
+    var path = require('path');
+
+    var Watcher = require('Watcher');
+    var Defaults = require('Defaults');
+    var MD5 = require('MD5');
+    var File = require('File');
+    var FileRefs = require('FileRefs');
+    var Lines = require('Lines');
+    var Path = require('Path');
+    var Url = require('Url');
+    var Attribute = require('Attribute');
+
+    var Mapper = $.require('Mapper');
+    var Emitter = $.require('Emitter');
+    var $Url = $.require('Url');
+
+    var mapper = new Mapper();
+
+
+
+    function LessLinks(dir, config) {
+
+        Mapper.setGuid(this);
+
+        config = Defaults.clone(module.id, config);
+
+        var meta = {
+            'dir': dir,
+
+            'master': '',
+            'list': [],
+            'lines': [],        //html 换行拆分的列表
+            'less$item': {},    //less 文件所对应的信息
+
+            'emitter': new Emitter(this),
+            'watcher': null,    //监控器，首次用到时再创建
+
+            'regexp': config.regexp,
+            'md5': config.md5,          //填充模板所使用的 md5 的长度
+            'sample': config.sample,    //使用的模板
+            'tags': config.tags,
+            'htdocsDir': config.htdocsDir,
+            'cssDir': config.cssDir,
+            'minify': config.minify,
+
+            //记录 minify 的输出结果
+            'build': {
+                file: '',       //完整物理路径
+                href: '',       //用于 link 标签中的 href 属性
+                content: '',    //合并和压缩后的内容
+            },
+
+          
+        };
+
+
+
+
+
+        mapper.set(this, meta);
+
+    }
+
+
+
+    LessLinks.prototype = {
+        constructor: LessLinks,
+
+        /**
+        * 重置为初始状态，即创建时的状态。
+        * @param {boolean} keep 是否保留之前编译过的信息。
+        *   如果需要保留，请指定为 true；否则指定为 false 或不指定。
+        */
+        reset: function (keep) {
+            var meta = mapper.get(this);
+            var less$item = meta.less$item;
+
+            meta.list.forEach(function (obj) {
+                var less = obj.file;
+                var item = less$item[less];
+
+                FileRefs.delete(less);
+                FileRefs.delete(item.file);
+            });
+
+
+            $.Object.extend(meta, {
+                'master': '',
+                'list': [],
+                'lines': [],        //html 换行拆分的列表
+                'less$item': keep ? less$item : {},    //less 文件所对应的信息
+
+                //记录 concat, minify 的输出结果
+                'build': {
+                    file: '',       //完整物理路径
+                    href: '',       //用于 link 标签中的 href 属性
+                    content: '',    //合并和压缩后的内容
+                },
+            });
+        },
+
+        /**
+        * 从当前或指定的母版页 html 内容中提出 less 文件列表信息。
+        * @param {string} master 要提取的母版页 html 内容字符串。
+        */
+        parse: function (master) {
+
+            var meta = mapper.get(this);
+            master = meta.master = master || meta.master;
+
+            //这里必须要有，不管下面的 list 是否有数据。
+            var lines = Lines.get(master);
+            meta.lines = lines;
+
+            //提取出 link 标签
+            var list = master.match(meta.regexp);
+            if (!list) {
+                return;
+            }
+
+            var startIndex = 0;         //搜索的起始行号
+
+            list = $.Array.map(list, function (item, index) {
+
+                var href = Attribute.get(item, 'href');
+                if (!href) {
+                    return null;
+                }
+
+                var index = Lines.getIndex(lines, item, startIndex);
+                startIndex = index + 1;     //下次搜索的起始行号。 这里要先加
+
+                var line = lines[index];    //整一行的 html。
+                lines[index] = null;        //先清空，后续会在 mix() 中重新计算而填进去。
+
+                //所在的行给注释掉了，忽略
+                if (Lines.commented(line, item)) {
+                    return null;
+                }
+
+                var file = Path.join(meta.dir, href);
+
+                return {
+                    'file': file,
+                    'index': index,     //行号，从 0 开始。
+                    'html': item,       //标签的 html 内容。
+                    'line': line,       //整一行的 html 内容。
+                };
+            });
+
+            meta.list = list;
+
+
+
+        },
+
+
+        /**
+        * 根据当前真实的 less 文件列表获取对应将要产生 css 文件列表。
+        */
+        get: function () {
+            var meta = mapper.get(this);
+
+            var htdocsDir = meta.htdocsDir;
+            var cssDir = meta.cssDir;
+            var less$item = meta.less$item;
+
+            meta.list.forEach(function (item) {
+                var less = item.file;
+
+                //如 less = '../htdocs/html/test/style/less/index.less';
+
+                if (less$item[less]) { //已处理过该项，针对 watch() 中的频繁调用。
+                    return;
+                }
+
+
+                var name = path.relative(htdocsDir, less);  //如 'html/test/style/less/index.less'
+                var ext = path.extname(name);               //如 '.less' 
+                var basename = path.basename(name, ext);    //如 'index'
+
+                name = path.dirname(name);              //如 'html/test/style/less'
+                name = name.split('\\').join('.');      //如 'html.test.style.less'
+                name = name + '.' + basename + '.css';  //如 'html.test.style.less.index.css'
+
+                var file = path.join(cssDir, name);
+                file = Path.format(file);
+
+                var href = path.relative(meta.dir, file);
+                href = Path.format(href);
+
+                less$item[less] = {
+                    'file': file,   //完整的 css 物理路径。
+                    'href': href,   //用于 link 标签中的 href 属性(css)
+                    'content': '',  //编译后的 css 内容。
+                    'md5': '',      //编译后的 css 内容对应的 md5 值，需要用到时再去计算。
+                };
+
+                FileRefs.add(less);
+                FileRefs.add(file);
+
+            });
+
+
+
+        },
+
+
+        /**
+        * 获取 less 文件列表所对应的 md5 值和引用计数信息。
+        */
+        md5: function () {
+            var meta = mapper.get(this);
+            var list = meta.list;
+            var file$stat = {};
+
+            list.forEach(function (item) {
+
+                var file = item.file;
+                var stat = file$stat[file];
+
+                if (stat) {
+                    stat['count']++;
+                    return;
+                }
+
+                var md5 = MD5.read(file);
+
+                file$stat[file] = {
+                    'count': 1,
+                    'md5': md5,
+                };
+
+            });
+
+            return file$stat;
+        },
+
+
+
+        /**
+        * 编译 less 文件列表(异步模式)。
+        * 如果指定了要编译的列表，则无条件进行编译。
+        * 否则，从原有的列表中过滤出尚未编译过的文件进行编译。
+        * 已重载:
+            compile(list, fn);
+            compile(list, options);
+            compile(list);
+            compile(fn);
+            compile(options);
+            compile(options, fn);
+        * @param {Array} [list] 经编译的 less 文件列表。 
+            如果指定了具体的 less 文件列表，则必须为当前文件引用模式下的子集。 
+            如果不指定，则使用原来已经解析出来的文件列表。
+            提供了参数 list，主要是在 watch() 中用到。
+        */
+        compile: function (list, options) {
+            var fn = null;
+            if (list instanceof Array) {
+                if (typeof options == 'function') { //重载 compile(list, fn);
+                    fn = options;
+                    options = null;
+                }
+                else if (typeof options == 'object') { //重载 compile(list, options);
+                    fn = options.done;
+                }
+                else { //重载 compile(list);
+                    options = null;
+                }
+            }
+            else if (typeof list == 'function') { //重载 compile(fn);
+                fn = list;
+                list = null;
+            }
+            else if (typeof list == 'object') { //重载 compile(options); 或 compile(options, fn)
+                fn = options;
+                options = list;
+                list = null;
+                fn = fn || options.done;
+            }
+
+
+            options = options || {  //这个默认值不能删除，供开发时 watch 使用。
+                'write': true,      //写入 css
+                'minify': false,     //使用压缩版。
+                'delete': false,    //删除 less，仅提供给上层业务 build 时使用。
+            };
+
+
+            var Less = require('Less');
+            var meta = mapper.get(this);
+            var less$item = meta.less$item;
+            var force = !!list;         //是否强制编译
+
+            list = list || meta.list.map(function (item) {
+                return item.file;
+            });
+
+
+            if (list.length == 0) { //没有 less 文件
+                fn && fn();
+                return;
+            }
+
+
+
+            //并行地发起异步的 less 编译
+            var $Array = require('Array');
+            $Array.parallel({
+                data: list,
+                each: function (less, index, done) {
+                    var item = less$item[less];
+
+                    //没有指定强制编译，并且该文件已经编译过了，则跳过。
+                    if (!force && item.content) {
+                        done();
+                        return;
+                    }
+
+                    Less.compile({
+                        'src': less,
+                        'dest': options.write ? item.file : '',
+                        'delete': options.delete,
+                        'compress': options.minify,
+                        'done': function (css) {
+                            item.content = css;
+                            done();
+                        },
+                    });
+
+                },
+                all: function () {  //已全部完成
+                    fn && fn();
+                },
+            });
+        },
+
+
+        /**
+        * 监控 css 文件的变化。
+        */
+        watch: function () {
+            var meta = mapper.get(this);
+
+            //这里不要缓存起来，因为可能在 parse() 中给重设为新的对象。
+            //var list = meta.list; 
+            var watcher = meta.watcher;
+
+            if (!watcher) { //首次创建。
+                watcher = meta.watcher = new Watcher();
+
+                var self = this;
+                var emitter = meta.emitter;
+                var less$item = meta.less$item;
+
+                watcher.on({
+
+                    'deleted': function (files) {
+                        console.log('文件已给删除'.yellow, files);
+                    },
+
+                    'changed': function (files) {
+
+                        //让对应的记录作废
+                        files.forEach(function (less) {
+                            var item = less$item[less];
+                            item.md5 = '';
+                            item.content = '';
+
+                            //根据当前文件名，找到具有相同文件名的节点集合。
+                            //让对应的 html 作废。
+                            meta.list.forEach(function (item) {
+                                if (item.file != less) {
+                                    return;
+                                }
+
+                                meta.lines[item.index] = null;
+                            });
+                        });
+
+                        self.compile(files, function () {
+                            emitter.fire('change');
+                        });
+
+                    },
+
+                });
+            }
+
+
+            var files = meta.list.map(function (item) {
+                return item.file;
+            });
+
+            watcher.set(files);
+
+        },
+
+
+        /**
+        * 
+        */
+        mix: function () {
+            var meta = mapper.get(this);
+            var list = meta.list;
+            var lines = meta.lines;
+            var replace = $.String.replaceAll;
+            var len = meta.md5;
+            var less$item = meta.less$item;
+            var sample = meta.sample;
+
+
+            list.forEach(function (obj) {
+
+                var index = obj.index;
+                if (lines[index]) { //之前已经生成过了
+                    return;
+                }
+
+                var less = obj.file;
+                var item = less$item[less];
+                var href = item.href;
+
+                if (len > 0) {
+                    var md5 = item.md5;
+                    if (!md5) { //动态去获取 md5 值。
+                        md5 = item.md5 = MD5.get(item.content, len);
+                    }
+
+                    href = href + '?' + md5;
+                }
+
+                var html = $.String.format(sample, {
+                    'href': href,
+                });
+
+                var line = replace(obj.line, obj.html, html);
+
+                lines[index] = line;
+
+            });
+
+
+            return Lines.join(lines);
+
+        },
+
+
+
+
+
+        /**
+        * 绑定事件。
+        */
+        on: function (name, fn) {
+            var meta = mapper.get(this);
+            var emitter = meta.emitter;
+
+            var args = [].slice.call(arguments, 0);
+            emitter.on.apply(emitter, args);
+
+            return this;
+        },
+
+
+
+    };
+
+
+
+    return LessLinks;
+
+
+
+});
+
+
+
+
+
+
+/**
 * 动态 Less 资源文件列表。
 */
 define('LessList', function (require, module, exports) {
@@ -4747,6 +5236,7 @@ define('MasterPage', function (require, module, exports) {
     var HtmlLinks = require('HtmlLinks');
     var CssLinks = require('CssLinks');
     var JsList = require('JsList');
+    var LessLinks = require('LessLinks');
     var LessList = require('LessList');
     var JsScripts = require('JsScripts');
     var Verifier = require('Verifier');
@@ -4795,6 +5285,12 @@ define('MasterPage', function (require, module, exports) {
                 'htdocsDir': htdocsDir,
             }),
 
+
+            'LessLinks': new LessLinks(dir, {
+                'htdocsDir': htdocsDir,
+                'cssDir': htdocsDir + config.cssDir,
+            }),
+
             'LessList': new LessList(dir, {
                 'htdocsDir': htdocsDir,
                 'cssDir': htdocsDir + config.cssDir,
@@ -4821,6 +5317,7 @@ define('MasterPage', function (require, module, exports) {
             var CssLinks = meta.CssLinks;
             var JsScripts = meta.JsScripts;
             var JsList = meta.JsList;
+            var LessLinks = meta.LessLinks;
             var LessList = meta.LessList;
 
             var self = this;
@@ -4864,26 +5361,41 @@ define('MasterPage', function (require, module, exports) {
             master = JsList.mix();
             name$master['JsList'] = master;
 
-            //动态引用 less 
-            LessList.reset();
-            LessList.parse(master);
-            LessList.get();
 
-            //检查重复引用或内容相同的文件。
-            self.uniqueFiles();
+            //静态引用 less
+            LessLinks.reset();
+            LessLinks.parse(master);
+            LessLinks.get();
+            LessLinks.compile(function () {
+                master = LessLinks.mix();
+                name$master['LessLinks'] = master;
+               
 
-            LessList.compile(function () {
-                LessList.toHtml();
-                master = LessList.mix();
+                //动态引用 less 
+                LessList.reset();
+                LessList.parse(master);
+                LessList.get();
 
-                //检查重复使用的 id。
-                self.uniqueIds(master);
+                //检查重复引用或内容相同的文件。
+                self.uniqueFiles();
+
+                LessList.compile(function () {
+                    LessList.toHtml();
+                    master = LessList.mix();
+
+                    //检查重复使用的 id。
+                    self.uniqueIds(master);
 
 
-                File.write(meta.dest, master);
+                    File.write(meta.dest, master);
 
-                done && done();
+                    done && done();
+                });
+
             });
+
+
+            
         },
 
         /**
@@ -4899,12 +5411,13 @@ define('MasterPage', function (require, module, exports) {
             var CssLinks = meta.CssLinks;
             var JsScripts = meta.JsScripts;
             var JsList = meta.JsList;
+            var LessLinks = meta.LessLinks;
             var LessList = meta.LessList;
 
             var name$master = meta.name$master;
 
 
-            //注意，下面的 switch 各分支里不能有 break; 语句。
+            //注意，下面的 switch 各分支里不能有 break 语句。
             var master = meta.master;
             
             switch (name) {
@@ -4915,23 +5428,27 @@ define('MasterPage', function (require, module, exports) {
 
                 case 'HtmlLinks':
                     master = name$master['HtmlList'];
+
+                    //这级的重新解析不能放在上一个分支里。
                     HtmlLinks.reset();
-                    HtmlLinks.parse(master);
+                    HtmlLinks.parse(master);    //所在的行号可能发生了变化，要重新解析
                     HtmlLinks.watch();
                     master = HtmlLinks.mix();
                     name$master['HtmlLinks'] = master;
 
+                    CssLinks.reset();
+                    CssLinks.parse(master);     //所在的行号可能发生了变化，要重新解析
+
                 case 'CssLinks':
                     master = name$master['HtmlLinks'];
-                    CssLinks.reset();
-                    CssLinks.parse(master);  //所在的行号可能发生了变化，要重新解析
                     master = CssLinks.mix();
                     name$master['CssLinks'] = master;
 
+                    JsScripts.reset();
+                    JsScripts.parse(master);    //所在的行号可能发生了变化，要重新解析
+
                 case 'JsScripts':
                     master = name$master['CssLinks'];
-                    JsScripts.reset();
-                    JsScripts.parse(master);  //所在的行号可能发生了变化，要重新解析
                     master = JsScripts.mix();
                     name$master['JsScripts'] = master;
 
@@ -4940,8 +5457,17 @@ define('MasterPage', function (require, module, exports) {
                     master = JsList.mix(master);
                     name$master['JsList'] = master;
 
-                case 'LessList':
+                    LessLinks.reset(true);      //保留之前的编译信息。
+                    LessLinks.parse(master);    //所在的行号可能发生了变化，要重新解析
+                    LessLinks.get();
+
+                case 'LessLinks':
                     master = name$master['JsList'];
+                    master = LessLinks.mix();
+                    name$master['LessLinks'] = master;
+
+                case 'LessList':
+                    master = name$master['LessLinks'];
                     master = LessList.mix(master);
                
             }
@@ -4968,6 +5494,7 @@ define('MasterPage', function (require, module, exports) {
             var CssLinks = meta.CssLinks;
             var JsScripts = meta.JsScripts;
             var JsList = meta.JsList;
+            var LessLinks = meta.LessLinks;
             var LessList = meta.LessList;
 
             var self = this;
@@ -4976,13 +5503,14 @@ define('MasterPage', function (require, module, exports) {
             watcher = meta.watcher = new Watcher();
             watcher.set(file); //这里只需要添加一次
             watcher.on('changed', function () {
-                self.compile();
+                self.compile();     //根节点发生变化，需要重新编译。
                
                 HtmlList.watch();
                 HtmlLinks.watch();
                 CssLinks.watch();
                 JsScripts.watch();
                 JsList.watch();
+                LessLinks.watch();
                 LessList.watch();
             });
             
@@ -5010,6 +5538,12 @@ define('MasterPage', function (require, module, exports) {
             JsList.on('change', function () {
                 self.mix('JsList');
             });
+
+            LessLinks.watch();
+            LessLinks.on('change', function () {
+                self.mix('LessLinks');
+            });
+
 
             LessList.watch();
             LessList.on('change', function () {
@@ -5066,6 +5600,7 @@ define('MasterPage', function (require, module, exports) {
             var CssLinks = meta.CssLinks;
             var JsScripts = meta.JsScripts;
             var JsList = meta.JsList;
+            var LessLinks = meta.LessLinks;
             var LessList = meta.LessList;
 
             var master = File.read(meta.file);
@@ -5087,9 +5622,8 @@ define('MasterPage', function (require, module, exports) {
             //静态引用 css 
             CssLinks.reset();
             CssLinks.parse(master);
-
-        
             CssLinks.minify(options.minifyCss, function () {
+
                 master = CssLinks.mix();
 
                 //静态引用 js 
@@ -5132,50 +5666,70 @@ define('MasterPage', function (require, module, exports) {
 
                 master = JsList.mix();
 
-                //动态引用 less 
-                LessList.reset();
-                LessList.parse(master);
-                LessList.get();
+                LessLinks.reset();
+                LessLinks.parse(master);
+                LessLinks.get();
+
+                var opt = options.lessLinks;
+                LessLinks.compile(opt.compile, function () {
+
+                    master = LessLinks.mix();
+
+                    //动态引用 less 
+                    LessList.reset();
+                    LessList.parse(master);
+                    LessList.get();
 
 
-                //检查重复引用或内容相同的文件。
-                self.uniqueFiles();
+                    //检查重复引用或内容相同的文件。
+                    self.uniqueFiles();
 
-                var opt = options.lessList;
-                LessList.compile(opt.compile, function () {
+                    var opt = options.lessList;
+                    LessList.compile(opt.compile, function () {
 
-                    if (opt.concat) {
-                        LessList.concat(opt.concat);
-                        LessList.minify(opt.minify, function () {
-                            master = LessList.mix();
+                        if (opt.concat) {
+                            LessList.concat(opt.concat);
+                            LessList.minify(opt.minify, function () {
+                                master = LessList.mix();
+                                after();
+                            });
+                        }
+                        else {
                             after();
-                        });
-                    }
-                    else {
-                        after();
-                    }
-
-                    function after() {
-
-                        self.uniqueIds(master);
-
-                        var minifyHtml = options.minifyHtml;
-                        if (minifyHtml) {
-                            master = self.minify(master, minifyHtml);
                         }
 
-                        master = JsList.removeType(master);
-                        File.write(meta.dest, master);
-                        done && done();
-                    }
+                        function after() {
+
+                            self.uniqueIds(master);
+
+                            var minifyHtml = options.minifyHtml;
+                            if (minifyHtml) {
+                                master = self.minify(master, minifyHtml);
+                            }
+
+                            master = JsList.removeType(master);
+                            File.write(meta.dest, master);
+                            done && done();
+                        }
+                    });
+                   
                 });
+
+
+
             });
 
         },
 
         /**
         * 检查重复的引用或内容相同的 js 文件。
-        * 必须在调用 CssLinks.parse()、JsScripts.parse()、JsList.get()、LessList.get() 后使用该方法。
+        * 必须在调用 
+                CssLinks.parse();
+                JsScripts.parse();
+                JsList.get();
+                LessLinks.get();
+                LessList.get() ;
+            后使用该方法。
         */
         uniqueFiles: function () {
 
@@ -5183,12 +5737,14 @@ define('MasterPage', function (require, module, exports) {
             var JsScripts = meta.JsScripts;
             var JsList = meta.JsList;
             var CssLinks = meta.CssLinks;
+            var LessLinks = meta.LessLinks;
             var LessList = meta.LessList;
 
             var stats = [
                 JsList.md5(),
                 CssLinks.md5(),
                 JsScripts.md5(),
+                LessLinks.md5(),
                 LessList.md5(),
             ];
 
@@ -5705,6 +6261,7 @@ define('WebSite', function (require, module, exports) {
                         'minifyCss': options.minifyCss,
                         'minifyJs': options.minifyJs,
                         'jsList': options.jsList,
+                        'lessLinks': options.lessLinks,
                         'lessList': options.lessList,
 
                         'done': function () {
@@ -6556,6 +7113,30 @@ define('JsScripts.defaults', /**@lends JsScripts.defaults*/ {
             outer: true,        //当引用的文件是外部地址时，是否替换成 min 的引用。
         },
     },
+});
+
+
+/**
+* LessLinks 模块的默认配置
+* @name LessLinks.defaults
+*/
+define('LessLinks.defaults', /**@lends LessLinks.defaults*/ {
+    
+    htdocsDir: '../htdocs/',
+    cssDir: '../htdocs/style/css/',
+
+    md5: 4, //填充模板所使用的 md5 的长度。
+
+    //用来提取出 css 标签的正则表达式。
+    regexp: /<link\s+.*rel\s*=\s*["\']less["\'].*\/>/ig,
+
+
+    sample: '<link href="{href}" rel="stylesheet" />',   //使用的模板
+
+    minify: {
+        'delete': true,     //删除压缩前的源 css 文件。
+    },
+
 });
 
 

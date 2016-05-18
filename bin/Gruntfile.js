@@ -125,12 +125,12 @@ module.exports = function (grunt) {
         //test
         //需要顺便拷到其它项目中试用的。
         [
-            'E:/Kingdee/message/bin/f',
-            'E:/Kingdee/vCRM-cloud/bin/f',
+            //'E:/Kingdee/message/bin/f',
+            //'E:/Kingdee/vCRM-cloud/bin/f',
             'E:/Kingdee/vGuide/bin/f',
-            'E:/Kingdee/house/demo/bin/f',
-            'E:/Kingdee/house/admin/bin/f',
-            'E:/Kingdee/house/mobile/bin/f',
+            //'E:/Kingdee/house/demo/bin/f',
+            //'E:/Kingdee/house/admin/bin/f',
+            //'E:/Kingdee/house/mobile/bin/f',
             'E:/Kingdee/house/permit/bin/f',
 
         ].forEach(function (dest) {

@@ -30,6 +30,8 @@ Module.expose({
     //'Tag': true,
 
 
+    'File': true,
+    'Patterns': true,
     'WebSite': true,
    
 });
