@@ -21,7 +21,7 @@ Module.expose({
     ////html
     //'Attribute': true,
     //'CssLinks': true,
-    //'HtmlLinks': true,
+    'HtmlLinks': true,
     //'HtmlList': true,
     //'JsList': true,
     //'JsScripts': true,
@@ -29,6 +29,8 @@ Module.expose({
     //'MasterPage': true,
     //'Tag': true,
 
+    'JsPackage': true,
+    'Package': true,
 
     'File': true,
     'Patterns': true,

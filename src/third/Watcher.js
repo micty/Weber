@@ -36,7 +36,7 @@ define('Watcher', function (require, module, exports) {
 
         var watcher = new Gaze(files, {
             debounceDelay: 0,
-            maxListeners: 999,
+            maxListeners: 9999,
         });
 
         var events = {};        //记录需要绑定的事件类型。

@@ -49,14 +49,6 @@ define('LessLinks', function (require, module, exports) {
             'htdocsDir': config.htdocsDir,
             'cssDir': config.cssDir,
             'minify': config.minify,
-
-            //记录 minify 的输出结果
-            'build': {
-                file: '',       //完整物理路径
-                href: '',       //用于 link 标签中的 href 属性
-                content: '',    //合并和压缩后的内容
-            },
-
           
         };
 
@@ -90,19 +82,11 @@ define('LessLinks', function (require, module, exports) {
                 FileRefs.delete(item.file);
             });
 
-
             $.Object.extend(meta, {
                 'master': '',
                 'list': [],
                 'lines': [],        //html 换行拆分的列表
                 'less$item': keep ? less$item : {},    //less 文件所对应的信息
-
-                //记录 concat, minify 的输出结果
-                'build': {
-                    file: '',       //完整物理路径
-                    href: '',       //用于 link 标签中的 href 属性
-                    content: '',    //合并和压缩后的内容
-                },
             });
         },
 
@@ -289,7 +273,7 @@ define('LessLinks', function (require, module, exports) {
 
             options = options || {  //这个默认值不能删除，供开发时 watch 使用。
                 'write': true,      //写入 css
-                'minify': false,     //使用压缩版。
+                'minify': false,    //使用压缩版。
                 'delete': false,    //删除 less，仅提供给上层业务 build 时使用。
             };
 
@@ -312,8 +296,8 @@ define('LessLinks', function (require, module, exports) {
 
 
             //并行地发起异步的 less 编译
-            var $Array = require('Array');
-            $Array.parallel({
+            var Tasks = require('Tasks');
+            Tasks.parallel({
                 data: list,
                 each: function (less, index, done) {
                     var item = less$item[less];

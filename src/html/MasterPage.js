@@ -38,7 +38,7 @@ define('MasterPage', function (require, module, exports) {
 
         file = Path.join(htdocsDir, file);
 
-        var dir = path.dirname(file) + '/';     //如 '../htdocs/html/test/'
+        var dir = Path.dirname(file);           //如 '../htdocs/html/test/'
         var ext = path.extname(file);           //如 '.html'
         var name = path.basename(file, ext);    //如 'index.master'
         name = path.basename(name, path.extname(name)); //如 'index'
@@ -356,10 +356,8 @@ define('MasterPage', function (require, module, exports) {
                 config = meta.minifyHtml;
             }
 
-
-            //https://github.com/kangax/html-minifier
-            var minifier = require('html-minifier');
-            html = minifier.minify(html, config);
+            var Html = require('Html');
+            html = Html.minify(html, config);
 
             return html;
         },
@@ -401,9 +399,8 @@ define('MasterPage', function (require, module, exports) {
             //静态引用 html 
             HtmlLinks.reset();
             HtmlLinks.parse(master);
-            master = HtmlLinks.mix({
-                'delete': true,
-            });
+            master = HtmlLinks.mix(options.htmlLinks);
+
 
             //静态引用 css 
             CssLinks.reset();

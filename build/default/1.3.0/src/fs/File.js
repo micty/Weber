@@ -87,9 +87,27 @@ define('File', function (require, module, exports) {
     }
 
 
-    function writeJSON(file, json) {
-        json = JSON.stringify(json, null, 4);
+    function writeJSON(file, json, minify) {
+        json = minify ?
+            JSON.stringify(json) :
+            JSON.stringify(json, null, 4);
+
         write(file, json);
+    }
+
+    function readJSON(file) {
+        if (!exists(file)) {
+            return;
+        }
+
+        var json = read(file);
+        if (!json) {
+            return;
+        }
+
+        json = JSON.parse(json);
+        return json;
+       
     }
 
     return {
@@ -99,6 +117,7 @@ define('File', function (require, module, exports) {
         'copy': copy,
         'exists': exists,
         'writeJSON': writeJSON,
+        'readJSON': readJSON,
 
     };
 

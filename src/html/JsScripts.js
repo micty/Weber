@@ -282,7 +282,9 @@ define('JsScripts', function (require, module, exports) {
                 return item.file || null;
             });
 
-            watcher.set(files);
+
+
+            //watcher.set(files);
 
 
         },

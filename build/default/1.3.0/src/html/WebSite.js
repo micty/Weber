@@ -13,19 +13,20 @@ define('WebSite', function (require, module, exports) {
     var FileRefs = require('FileRefs');
     var MasterPage = require('MasterPage');
     var Defaults = require('Defaults');
-    var $Array = require('Array');
+    var Tasks = require('Tasks');
 
     var Watcher = require('Watcher');
 
     var Mapper = $.require('Mapper');
     var Emitter = $.require('Emitter');
 
-    var Log = module.require('Log');
+    var Log = require('Log');
     var Url = module.require('Url');
 
     var mapper = new Mapper();
 
-
+    var Masters = module.require('Masters');
+    var Packages = module.require('Packages');
 
     
     function WebSite(config) {
@@ -35,9 +36,12 @@ define('WebSite', function (require, module, exports) {
 
         var meta = {
             'masters': config.masters,
+            'packages': config.packages,
             'cssDir': config.cssDir,
             'htdocsDir': config.htdocsDir,
             'buildDir': config.buildDir,
+            'packageDir': config.packageDir,
+            'packageFile': config.packageFile,
             'url': config.url,
             'qr': config.qr,
         };
@@ -59,10 +63,10 @@ define('WebSite', function (require, module, exports) {
         build: function (options, done) {
             var meta = mapper.get(this);
 
-            var masters = options.masters || meta.masters;
-            var htdocsDir = options.htdocsDir || meta.htdocsDir;
-            var buildDir = options.dir || meta.buildDir;
-            var cssDir = options.cssDir || meta.cssDir;
+            var htdocsDir = meta.htdocsDir;
+            var cssDir = meta.cssDir;
+            var packageDir = meta.packageDir;
+            var buildDir = meta.buildDir = options.dir || meta.buildDir;
 
             console.log('删除目录'.bgYellow, buildDir.yellow);
             Directory.delete(buildDir);
@@ -70,144 +74,27 @@ define('WebSite', function (require, module, exports) {
             console.log('复制目录'.bgMagenta, htdocsDir.green, '→', buildDir.cyan);
             Directory.copy(htdocsDir, buildDir);
           
+            //先删除自动生成的目录，后续会再生成回来。
             Directory.delete(buildDir + cssDir);
+            Directory.delete(buildDir + packageDir);
 
+            var processMasters = Masters.build(meta, options.masters);
+            var processPackages = Packages.build(meta, options.packages);
 
-            //从模式中获取真实的 master 文件列表。
-            masters = Patterns.getFiles(buildDir, masters);
-            masters = masters.map(function (file) {
-                file = Path.relative(buildDir, file);
-                return file;
-            });
+            //并行处理任务。
+            Tasks.parallel({
+                data: [ //任务列表。
+                    processMasters,
+                    processPackages,
+                ],  
 
-            console.log('匹配到'.bgGreen, masters.length.toString().cyan, '个模板页:');
-            Log.logArray(masters);
-
-
-            //单独处理需要替换的文件，如 config.js。
-
-            var inlines = []; //记录需要内联的文件。
-
-            $.Object.each(options.process || {}, function (pattern, item) {
-
-                var files = Patterns.combine(buildDir, pattern);
-                files = Patterns.getFiles(files);
-
-                var each = typeof item == 'function' ? fnManual : fnAuto;
-                files.forEach(each);
-
-                //针对 item 为一个回调函数时。
-                function fnManual(file) {
-                    var content = File.read(file);
-
-                    var href = Path.relative(buildDir, file);
-                    content = item(href, content, require);
-
-                    if (content == null) {
-                        File.delete(file);
-                    }
-                    else {
-                        File.write(file, content, null);
-                    }
-                }
-
-                //针对 item 为一个对象时。
-                function fnAuto(file) {
-
-                    if (item.minify) {
-                        var content = File.read(file);
-
-                        var UglifyJS = require('uglify-js');
-                        content = UglifyJS.minify(content, { fromString: true, });
-                        content = content.code;
-                        File.write(file, content);
-                    }
-
-
-                    var inline = item.inline;
-                    if (inline == 'auto') { //当指定为 auto 时，则根据 master 页的个数决定是否内联。
-                        inline = masters.length == 1;
-                    }
-
-                    var deleted = item.delete;
-                    if (deleted == 'auto') { //当指定为 auto 时，则根据 inline 决定是否删除。
-                        deleted = inline;
-                    }
-
-                    if (inline) {
-                        inlines.push({
-                            'file': file,
-                            'delete': deleted,
-                        });
-                    }
-                }
-
-            });
-
-            //短路径补全
-            var jsList = options.jsList;
-            if (jsList) {
-                var opt = jsList.concat;
-
-                if (opt) {
-                    var header = opt.header;
-                    var footer = opt.footer;
-                    var addPath = opt.addPath;
-
-                    if (header) {
-                        opt.header = Path.join(buildDir, header);
-                    }
-                    if (footer) {
-                        opt.footer = Path.join(buildDir, footer);
-                    }
-                    if (addPath === true) {
-                        opt.addPath = buildDir; //添加文件路径的注释所使用的相对路径。
-                    }
-
-                }
-            }
-           
-
-            $Array.parallel({
-                data: masters,
-
-                each: function (file, index, done) {
-                    Log.seperate();
-
-                    console.log('>> 开始构建'.cyan, file);
-
-                    var master = new MasterPage(file, {
-                        'htdocsDir': buildDir,
-                        'cssDir': cssDir,
-                    });
-
-                    master.build({
-                        'inlines': inlines,
-                        'minifyHtml': options.minifyHtml,
-                        'minifyCss': options.minifyCss,
-                        'minifyJs': options.minifyJs,
-                        'jsList': options.jsList,
-                        'lessLinks': options.lessLinks,
-                        'lessList': options.lessList,
-
-                        'done': function () {
-                            console.log('<< 完成构建'.green, file);
-                            done(master);
-                        },
-                    });
+                each: function (task, index, done) {
+                    task(done);
                 },
 
-                all: function (masters) {
-
-                    //console.log('>> 开始执行清理操作...'.yellow);
-
-                    masters.forEach(function (master) {
-                        master.clean();
-                    });
-                    
+                all: function () {
                     FileRefs.clean(); //删除已注册并且引用计数为 0 的物理文件。
 
-                    
                     //需要清理的文件或目录。
                     var clean = options.clean;
                     if (clean) {
@@ -218,20 +105,19 @@ define('WebSite', function (require, module, exports) {
                         console.log('清理'.bgMagenta, files.length.toString().cyan, '个文件:');
                         Log.logArray(files, 'gray');
                     }
-                    
 
                     //递归删除空目录
                     Directory.trim(buildDir);
-
                     Log.allDone('全部构建完成');
-
                     done && done();
+                },
 
-
-                }
             });
 
         },
+
+
+
 
         /**
         * 编译整个站点，完成后开启监控。
@@ -239,50 +125,34 @@ define('WebSite', function (require, module, exports) {
         watch: function (done) {
 
             var meta = mapper.get(this);
-            var masters = meta.masters;
-            var htdocsDir = meta.htdocsDir;
-            var cssDir = meta.cssDir;
+            
+            //这里要先创建 package 目录，否则 watcher 会出错，暂未找到根本原因。
+            Directory.create(meta.htdocsDir + meta.packageDir);
 
-            //从模式中获取真实的文件列表
-            masters = Patterns.getFiles(htdocsDir, masters);
-            masters = masters.map(function (file) {
-                file = Path.relative(htdocsDir, file);
-                return file;
-            });
+            var processMasters = Masters.watch(meta);
+            var processPackages = Packages.watch(meta);
 
-            console.log('匹配到'.bgGreen, masters.length.toString().cyan, '个模板页:');
-            Log.logArray(masters);
+            //并行处理任务。
+            Tasks.parallel({
+                data: [ //任务列表。
+                    processMasters,
+                    processPackages,
+                ],
 
-
-            var $Array = require('Array');
-            $Array.parallel({
-                data: masters,
-                each: function (file, index, done) {
-
-                    Log.seperate();
-                    console.log('>> 开始编译'.cyan, file);
-
-                    var master = new MasterPage(file, {
-                        'htdocsDir': htdocsDir,
-                        'cssDir': cssDir,
-                    });
-
-                    master.compile(function () {
-                        console.log('<< 完成编译'.green, file);
-                        master.watch();
-                        done();
-                    });
+                each: function (task, index, done) {
+                    task(done);
                 },
 
-                all: function () {  //已全部完成
-                   
+                all: function () {
                     Log.allDone('全部编译完成');
                     Watcher.log();
-
                     done && done();
                 },
+
             });
         },
+
+
 
         /**
         * 统计整个站点信息。

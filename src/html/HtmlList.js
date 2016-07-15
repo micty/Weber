@@ -116,7 +116,7 @@ define('HtmlList', function (require, module, exports) {
             var patterns = meta.patterns;
             var list = Patterns.getFiles(patterns);
 
-            meta.list = list = $.Array.keep(list, function (file, index) {
+            meta.list = list = list.map(function (file, index) {
 
                 file = Path.format(file);
 
@@ -151,7 +151,7 @@ define('HtmlList', function (require, module, exports) {
             var sample = meta.sample;
 
             //todo: 检查重复的文件
-            list = $.Array.keep(list, function (item, index) {
+            list = list.map(function (item, index) {
 
                 return $.String.format(sample, {
                     'href': item.href,

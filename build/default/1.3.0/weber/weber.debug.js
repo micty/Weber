@@ -2,18 +2,20 @@
 * weber - web develop tool
 * name: default 
 * version: 1.3.0
-* build: 2016-05-18 17:32:49
-* files: 54(52)
+* build: 2016-07-15 15:09:11
+* files: 65(63)
 *    partial/default/begin.js
 *    core/Module.js
 *    core/Node.js
 *    core/$.js
 *    core/Weber.js
-*    excore/Array.js
+*    core/console.js
 *    excore/Config.js
 *    excore/Defaults.js
+*    excore/Log.js
 *    excore/Config/Data.js
 *    excore/String.js
+*    excore/Tasks.js
 *    excore/Url.js
 *    crypto/MD5.js
 *    fs/Directory.js
@@ -40,8 +42,15 @@
 *    html/Tag.js
 *    html/Verifier.js
 *    html/WebSite.js
-*    html/WebSite/Log.js
+*    html/WebSite/Masters.js
+*    html/WebSite/Packages.js
 *    html/WebSite/Url.js
+*    pack/HtmlPackage.js
+*    pack/JsPackage.js
+*    pack/LessPackage.js
+*    pack/Package.js
+*    third/Html.js
+*    third/JS.js
 *    third/Less.js
 *    third/Watcher.js
 *    partial/default/defaults/excore/Module.js
@@ -55,6 +64,8 @@
 *    partial/default/defaults/html/LessList.js
 *    partial/default/defaults/html/MasterPage.js
 *    partial/default/defaults/html/WebSite.js
+*    partial/default/defaults/pack/Package.js
+*    partial/default/defaults/third/Html.js
 *    partial/default/defaults/third/Watcher.js
 *    partial/default/expose.js
 *    partial/default/end.js
@@ -263,73 +274,38 @@ define('Weber', function (require, module, exports) {
 });
 
 
-/**
-* 数组工具类
-* @namesapce
-* @name Array
-*/
-define('Array', function (require, module,  exports) {
+define('console', function (require, module) {
 
-    //并行发起异步操作
-    function parallel(list, each, allDone) {
+    var console = global.console;
 
-        //重载 parallel(options)
-        if (!(list instanceof Array)) {
-            var options = list;
-            list = options.data;
-            each = options.each;
-            allDone = options.all;
-        }
-
-        var count = list.length;
-        if (count == 0) {
-            allDone && allDone([]);
-            return;
-        }
-
-        var values = [];
-        var dones = new Array(count);
-
-        function done(index) {
-            dones[index] = true;
-            count--;    
-
-            //单纯记录计数不够安全，因为调用者可能会恶意多次调用 done()。
-            if (count > 0) { //性能优化
-                return;
-            }
-
-            //安全起见，检查每项的完成状态
-            for (var i = 0, len = dones.length; i < len; i++) {
-
-                if (!dones[i]) {
-                    return;
-                }
-
-            }
-
-            allDone && allDone(values);
-        }
-
-        list.forEach(function (item, index) {
-            (function (index) { //done(index) 是异步调用，要多一层闭包。
-                each(item, index, function (value) {
-                    
-                    values.push(value); //需要收集的值，由调用者传入。
-                    done(index);
-                });
-            })(index);
-        });
-    }
-
-    return /**@lends Array*/ {
-        parallel: parallel,
-
-    };
+  
 
 
 });
 
+
+//var log = console.log.bind(console);
+
+
+//console.log = function () {
+//    //var now = $.Date.format(new Date(), 'yyyyMMddhhmmss');
+//    var args = [].slice.call(arguments, 0);
+//    //args = [now].concat(args);
+
+//    var $ = Module.require('$');
+//    var File = Module.require('File');
+//    var file = 'log.txt';
+
+
+//    var content = File.exists(file) ? File.read(file) : '';
+//    content += args.join(' ') + '\r\n';
+
+//    File.write(file, content, null); //本身不能输出 log
+
+
+//    log.apply(null, args);
+
+//};
 /**
 * 配置工具类。
 * @class
@@ -554,6 +530,37 @@ define('Defaults', function (require, module, exports) {
 
 
 
+define('Log', function (require, module, exports) {
+
+
+    function seperate() {
+        console.log('------------------------------------------------------------------------------'.magenta);
+    }
+
+    function allDone(s) {
+        console.log(('=================================' + s + '=================================').green);
+    }
+
+    function logArray(list, color) {
+        color = color || 'green';
+        console.log('    ' + list.join('\r\n    ')[color]);
+    }
+
+
+
+    return {
+        'seperate': seperate,
+        'allDone': allDone,
+        'logArray': logArray,
+    };
+
+});
+
+
+
+
+
+
 /**
 * 配置工具的预留数据填充格式化工具。
 * @namespace
@@ -665,6 +672,113 @@ define('String', function (require, module,  exports) {
     return /**@lends String*/ {
         'replaceBetween': replaceBetween,
 
+    };
+
+
+});
+
+
+
+/**
+* 任务处理工具类
+* @namesapce
+* @name Tasks
+*/
+define('Tasks', function (require, module,  exports) {
+
+    //并行发起异步操作
+    function parallel(list, each, allDone) {
+
+        //重载 parallel(options)
+        if (!(list instanceof Array)) {
+            var options = list;
+            list = options.data;
+            each = options.each;
+            allDone = options.all;
+        }
+
+        var count = list.length;
+        if (count == 0) {
+            allDone && allDone([]);
+            return;
+        }
+
+        var values = [];
+        var dones = new Array(count);
+
+        function done(index) {
+            dones[index] = true;
+            count--;    
+
+            //单纯记录计数不够安全，因为调用者可能会恶意多次调用 done()。
+            if (count > 0) { //性能优化
+                return;
+            }
+
+            //安全起见，检查每项的完成状态
+            for (var i = 0, len = dones.length; i < len; i++) {
+
+                if (!dones[i]) {
+                    return;
+                }
+
+            }
+
+            allDone && allDone(values);
+        }
+
+        list.forEach(function (item, index) {
+            (function (index) { //done(index) 是异步调用，要多一层闭包。
+                each(item, index, function (value) {
+                    
+                    values.push(value); //需要收集的值，由调用者传入。
+                    done(index);
+                });
+            })(index);
+        });
+    }
+
+    //串行发起异步操作
+    function serial(list, each, allDone) {
+        //重载 serial(options)
+        if (!(list instanceof Array)) {
+            var options = list;
+            list = options.data;
+            each = options.each;
+            allDone = options.all;
+        }
+
+
+        var index = 0;
+        var len = list.length;
+        var values = [];
+
+        function process() {
+            var item = list[index];
+
+            each(item, index, function (value) {
+                index++;
+                values.push(value); //需要收集的值，由调用者传入。
+
+                if (index < len) {
+                    process();
+                }
+                else {
+                    allDone && allDone(values);
+                }
+            });
+        }
+
+        process();
+
+    }
+
+
+
+    return /**@lends Tasks*/ {
+
+        'parallel': parallel,
+        'serial': serial,
     };
 
 
@@ -1120,9 +1234,27 @@ define('File', function (require, module, exports) {
     }
 
 
-    function writeJSON(file, json) {
-        json = JSON.stringify(json, null, 4);
+    function writeJSON(file, json, minify) {
+        json = minify ?
+            JSON.stringify(json) :
+            JSON.stringify(json, null, 4);
+
         write(file, json);
+    }
+
+    function readJSON(file) {
+        if (!exists(file)) {
+            return;
+        }
+
+        var json = read(file);
+        if (!json) {
+            return;
+        }
+
+        json = JSON.parse(json);
+        return json;
+       
     }
 
     return {
@@ -1132,6 +1264,7 @@ define('File', function (require, module, exports) {
         'copy': copy,
         'exists': exists,
         'writeJSON': writeJSON,
+        'readJSON': readJSON,
 
     };
 
@@ -1331,7 +1464,11 @@ define('Path', function (require, module, exports) {
    
 
     function join(a, b) {
-        return format(path.join(a, b));
+
+        var args = [].slice.call(arguments, 0);
+        var all = path.join.apply(path, args);
+
+        return format(all);
     }
 
 
@@ -1997,8 +2134,8 @@ define('CssLinks', function (require, module, exports) {
             var list = meta.list;
 
             //并行地发起异步编译。
-            var $Array = require('Array');
-            $Array.parallel({
+            var Tasks = require('Tasks');
+            Tasks.parallel({
                 data: list,
                 all: done,
                 each: function (item, index, done) {
@@ -2379,7 +2516,9 @@ define('HtmlLinks', function (require, module, exports) {
             var list = meta.list;
 
             list.forEach(function (item) {
+
                 FileRefs.delete(item.file);
+
                 item.links.delete(); //递归删除下级的
             });
 
@@ -2554,7 +2693,7 @@ define('HtmlList', function (require, module, exports) {
             var patterns = meta.patterns;
             var list = Patterns.getFiles(patterns);
 
-            meta.list = list = $.Array.keep(list, function (file, index) {
+            meta.list = list = list.map(function (file, index) {
 
                 file = Path.format(file);
 
@@ -2589,7 +2728,7 @@ define('HtmlList', function (require, module, exports) {
             var sample = meta.sample;
 
             //todo: 检查重复的文件
-            list = $.Array.keep(list, function (item, index) {
+            list = list.map(function (item, index) {
 
                 return $.String.format(sample, {
                     'href': item.href,
@@ -3164,8 +3303,6 @@ define('JsList', function (require, module, exports) {
             }
            
 
-            var build = meta.build;
-
             list = $.Array.keep(list, function (item) {
                 return item.file;
             });
@@ -3185,44 +3322,12 @@ define('JsList', function (require, module, exports) {
                 list = list.concat(footer);
             }
 
-
-            var contents = [];
-            var files = [];
-            
-            list.forEach(function (src, index) {
-
-                var file = src;
-
-                //添加文件路径的注释
-                var addPath = options.addPath;
-                if (addPath) { 
-                    //如果传入的是字符串，则使用相对于它的地址。
-                    if (typeof addPath == 'string') {
-                        file = path.relative(addPath, src);
-                        file = Path.format(file);
-                    }
-
-                    contents.push('\r\n// ' + file + '\r\n');
-                }
-                
-
-                var s = File.read(src);
-                contents.push(s);
-
-                files.push(file);
+            var JS = require('JS');
+            var content = JS.concat(list, {
+                'addPath': options.addPath,
+                'delete': options.delete,
             });
 
-            console.log('合并'.bgGreen, files.length.toString().cyan, '个文件:');
-            console.log('    ' + files.join('\r\n    ').gray);
-
-            if (options.delete) {//删除源分 js 文件
-                list.forEach(function (file) {
-                    FileRefs.delete(file);
-                });
-            }
-
-
-            var content = contents.join('');
 
             var name = options.name || 32;
             var isMd5Name = typeof name == 'number';  //为数字时，则表示使用 md5 作为名称。
@@ -3239,7 +3344,7 @@ define('JsList', function (require, module, exports) {
             }
 
 
-            $.Object.extend(build, {
+            $.Object.extend(meta.build, {
                 'file': file,
                 'content': content,
             });
@@ -3279,9 +3384,7 @@ define('JsList', function (require, module, exports) {
                 options = meta.minify;
             }
 
-            //https://github.com/mishoo/UglifyJS2
-            var UglifyJS = require('uglify-js');
-            
+
             var build = meta.build;
             var content = build.content;
 
@@ -3289,10 +3392,8 @@ define('JsList', function (require, module, exports) {
                 File.delete(build.file);
             }
 
-
-            //直接从内容压缩，不读取文件
-            var result = UglifyJS.minify(content, {fromString: true,});
-            content = result.code;
+            var JS = require('JS');
+            content = JS.minify(content);    //直接从内容压缩，不读取文件
 
 
             var name = options.name || 32;
@@ -3379,8 +3480,6 @@ define('JsList', function (require, module, exports) {
             return master;
         },
 
-
-
         /**
         * 删除模式列表中所对应的 js 物理文件。
         */
@@ -3405,10 +3504,7 @@ define('JsList', function (require, module, exports) {
             return this;
         },
 
-
-
     };
-
 
 
     return $.Object.extend(JsList, {
@@ -3737,7 +3833,9 @@ define('JsScripts', function (require, module, exports) {
                 return item.file || null;
             });
 
-            watcher.set(files);
+
+
+            //watcher.set(files);
 
 
         },
@@ -4002,14 +4100,6 @@ define('LessLinks', function (require, module, exports) {
             'htdocsDir': config.htdocsDir,
             'cssDir': config.cssDir,
             'minify': config.minify,
-
-            //记录 minify 的输出结果
-            'build': {
-                file: '',       //完整物理路径
-                href: '',       //用于 link 标签中的 href 属性
-                content: '',    //合并和压缩后的内容
-            },
-
           
         };
 
@@ -4043,19 +4133,11 @@ define('LessLinks', function (require, module, exports) {
                 FileRefs.delete(item.file);
             });
 
-
             $.Object.extend(meta, {
                 'master': '',
                 'list': [],
                 'lines': [],        //html 换行拆分的列表
                 'less$item': keep ? less$item : {},    //less 文件所对应的信息
-
-                //记录 concat, minify 的输出结果
-                'build': {
-                    file: '',       //完整物理路径
-                    href: '',       //用于 link 标签中的 href 属性
-                    content: '',    //合并和压缩后的内容
-                },
             });
         },
 
@@ -4242,7 +4324,7 @@ define('LessLinks', function (require, module, exports) {
 
             options = options || {  //这个默认值不能删除，供开发时 watch 使用。
                 'write': true,      //写入 css
-                'minify': false,     //使用压缩版。
+                'minify': false,    //使用压缩版。
                 'delete': false,    //删除 less，仅提供给上层业务 build 时使用。
             };
 
@@ -4265,8 +4347,8 @@ define('LessLinks', function (require, module, exports) {
 
 
             //并行地发起异步的 less 编译
-            var $Array = require('Array');
-            $Array.parallel({
+            var Tasks = require('Tasks');
+            Tasks.parallel({
                 data: list,
                 each: function (less, index, done) {
                     var item = less$item[less];
@@ -4717,8 +4799,8 @@ define('LessList', function (require, module, exports) {
 
 
             //并行地发起异步的 less 编译
-            var $Array = require('Array');
-            $Array.parallel({
+            var Tasks = require('Tasks');
+            Tasks.parallel({
                 data: list,
                 each: function (less, index, done) {
                     var item = less$item[less];
@@ -5252,7 +5334,7 @@ define('MasterPage', function (require, module, exports) {
 
         file = Path.join(htdocsDir, file);
 
-        var dir = path.dirname(file) + '/';     //如 '../htdocs/html/test/'
+        var dir = Path.dirname(file);           //如 '../htdocs/html/test/'
         var ext = path.extname(file);           //如 '.html'
         var name = path.basename(file, ext);    //如 'index.master'
         name = path.basename(name, path.extname(name)); //如 'index'
@@ -5570,10 +5652,8 @@ define('MasterPage', function (require, module, exports) {
                 config = meta.minifyHtml;
             }
 
-
-            //https://github.com/kangax/html-minifier
-            var minifier = require('html-minifier');
-            html = minifier.minify(html, config);
+            var Html = require('Html');
+            html = Html.minify(html, config);
 
             return html;
         },
@@ -5615,9 +5695,8 @@ define('MasterPage', function (require, module, exports) {
             //静态引用 html 
             HtmlLinks.reset();
             HtmlLinks.parse(master);
-            master = HtmlLinks.mix({
-                'delete': true,
-            });
+            master = HtmlLinks.mix(options.htmlLinks);
+
 
             //静态引用 css 
             CssLinks.reset();
@@ -6087,19 +6166,20 @@ define('WebSite', function (require, module, exports) {
     var FileRefs = require('FileRefs');
     var MasterPage = require('MasterPage');
     var Defaults = require('Defaults');
-    var $Array = require('Array');
+    var Tasks = require('Tasks');
 
     var Watcher = require('Watcher');
 
     var Mapper = $.require('Mapper');
     var Emitter = $.require('Emitter');
 
-    var Log = module.require('Log');
+    var Log = require('Log');
     var Url = module.require('Url');
 
     var mapper = new Mapper();
 
-
+    var Masters = module.require('Masters');
+    var Packages = module.require('Packages');
 
     
     function WebSite(config) {
@@ -6109,9 +6189,12 @@ define('WebSite', function (require, module, exports) {
 
         var meta = {
             'masters': config.masters,
+            'packages': config.packages,
             'cssDir': config.cssDir,
             'htdocsDir': config.htdocsDir,
             'buildDir': config.buildDir,
+            'packageDir': config.packageDir,
+            'packageFile': config.packageFile,
             'url': config.url,
             'qr': config.qr,
         };
@@ -6133,10 +6216,10 @@ define('WebSite', function (require, module, exports) {
         build: function (options, done) {
             var meta = mapper.get(this);
 
-            var masters = options.masters || meta.masters;
-            var htdocsDir = options.htdocsDir || meta.htdocsDir;
-            var buildDir = options.dir || meta.buildDir;
-            var cssDir = options.cssDir || meta.cssDir;
+            var htdocsDir = meta.htdocsDir;
+            var cssDir = meta.cssDir;
+            var packageDir = meta.packageDir;
+            var buildDir = meta.buildDir = options.dir || meta.buildDir;
 
             console.log('删除目录'.bgYellow, buildDir.yellow);
             Directory.delete(buildDir);
@@ -6144,144 +6227,27 @@ define('WebSite', function (require, module, exports) {
             console.log('复制目录'.bgMagenta, htdocsDir.green, '→', buildDir.cyan);
             Directory.copy(htdocsDir, buildDir);
           
+            //先删除自动生成的目录，后续会再生成回来。
             Directory.delete(buildDir + cssDir);
+            Directory.delete(buildDir + packageDir);
 
+            var processMasters = Masters.build(meta, options.masters);
+            var processPackages = Packages.build(meta, options.packages);
 
-            //从模式中获取真实的 master 文件列表。
-            masters = Patterns.getFiles(buildDir, masters);
-            masters = masters.map(function (file) {
-                file = Path.relative(buildDir, file);
-                return file;
-            });
+            //并行处理任务。
+            Tasks.parallel({
+                data: [ //任务列表。
+                    processMasters,
+                    processPackages,
+                ],  
 
-            console.log('匹配到'.bgGreen, masters.length.toString().cyan, '个模板页:');
-            Log.logArray(masters);
-
-
-            //单独处理需要替换的文件，如 config.js。
-
-            var inlines = []; //记录需要内联的文件。
-
-            $.Object.each(options.process || {}, function (pattern, item) {
-
-                var files = Patterns.combine(buildDir, pattern);
-                files = Patterns.getFiles(files);
-
-                var each = typeof item == 'function' ? fnManual : fnAuto;
-                files.forEach(each);
-
-                //针对 item 为一个回调函数时。
-                function fnManual(file) {
-                    var content = File.read(file);
-
-                    var href = Path.relative(buildDir, file);
-                    content = item(href, content, require);
-
-                    if (content == null) {
-                        File.delete(file);
-                    }
-                    else {
-                        File.write(file, content, null);
-                    }
-                }
-
-                //针对 item 为一个对象时。
-                function fnAuto(file) {
-
-                    if (item.minify) {
-                        var content = File.read(file);
-
-                        var UglifyJS = require('uglify-js');
-                        content = UglifyJS.minify(content, { fromString: true, });
-                        content = content.code;
-                        File.write(file, content);
-                    }
-
-
-                    var inline = item.inline;
-                    if (inline == 'auto') { //当指定为 auto 时，则根据 master 页的个数决定是否内联。
-                        inline = masters.length == 1;
-                    }
-
-                    var deleted = item.delete;
-                    if (deleted == 'auto') { //当指定为 auto 时，则根据 inline 决定是否删除。
-                        deleted = inline;
-                    }
-
-                    if (inline) {
-                        inlines.push({
-                            'file': file,
-                            'delete': deleted,
-                        });
-                    }
-                }
-
-            });
-
-            //短路径补全
-            var jsList = options.jsList;
-            if (jsList) {
-                var opt = jsList.concat;
-
-                if (opt) {
-                    var header = opt.header;
-                    var footer = opt.footer;
-                    var addPath = opt.addPath;
-
-                    if (header) {
-                        opt.header = Path.join(buildDir, header);
-                    }
-                    if (footer) {
-                        opt.footer = Path.join(buildDir, footer);
-                    }
-                    if (addPath === true) {
-                        opt.addPath = buildDir; //添加文件路径的注释所使用的相对路径。
-                    }
-
-                }
-            }
-           
-
-            $Array.parallel({
-                data: masters,
-
-                each: function (file, index, done) {
-                    Log.seperate();
-
-                    console.log('>> 开始构建'.cyan, file);
-
-                    var master = new MasterPage(file, {
-                        'htdocsDir': buildDir,
-                        'cssDir': cssDir,
-                    });
-
-                    master.build({
-                        'inlines': inlines,
-                        'minifyHtml': options.minifyHtml,
-                        'minifyCss': options.minifyCss,
-                        'minifyJs': options.minifyJs,
-                        'jsList': options.jsList,
-                        'lessLinks': options.lessLinks,
-                        'lessList': options.lessList,
-
-                        'done': function () {
-                            console.log('<< 完成构建'.green, file);
-                            done(master);
-                        },
-                    });
+                each: function (task, index, done) {
+                    task(done);
                 },
 
-                all: function (masters) {
-
-                    //console.log('>> 开始执行清理操作...'.yellow);
-
-                    masters.forEach(function (master) {
-                        master.clean();
-                    });
-                    
+                all: function () {
                     FileRefs.clean(); //删除已注册并且引用计数为 0 的物理文件。
 
-                    
                     //需要清理的文件或目录。
                     var clean = options.clean;
                     if (clean) {
@@ -6292,20 +6258,19 @@ define('WebSite', function (require, module, exports) {
                         console.log('清理'.bgMagenta, files.length.toString().cyan, '个文件:');
                         Log.logArray(files, 'gray');
                     }
-                    
 
                     //递归删除空目录
                     Directory.trim(buildDir);
-
                     Log.allDone('全部构建完成');
-
                     done && done();
+                },
 
-
-                }
             });
 
         },
+
+
+
 
         /**
         * 编译整个站点，完成后开启监控。
@@ -6313,50 +6278,34 @@ define('WebSite', function (require, module, exports) {
         watch: function (done) {
 
             var meta = mapper.get(this);
-            var masters = meta.masters;
-            var htdocsDir = meta.htdocsDir;
-            var cssDir = meta.cssDir;
+            
+            //这里要先创建 package 目录，否则 watcher 会出错，暂未找到根本原因。
+            Directory.create(meta.htdocsDir + meta.packageDir);
 
-            //从模式中获取真实的文件列表
-            masters = Patterns.getFiles(htdocsDir, masters);
-            masters = masters.map(function (file) {
-                file = Path.relative(htdocsDir, file);
-                return file;
-            });
+            var processMasters = Masters.watch(meta);
+            var processPackages = Packages.watch(meta);
 
-            console.log('匹配到'.bgGreen, masters.length.toString().cyan, '个模板页:');
-            Log.logArray(masters);
+            //并行处理任务。
+            Tasks.parallel({
+                data: [ //任务列表。
+                    processMasters,
+                    processPackages,
+                ],
 
-
-            var $Array = require('Array');
-            $Array.parallel({
-                data: masters,
-                each: function (file, index, done) {
-
-                    Log.seperate();
-                    console.log('>> 开始编译'.cyan, file);
-
-                    var master = new MasterPage(file, {
-                        'htdocsDir': htdocsDir,
-                        'cssDir': cssDir,
-                    });
-
-                    master.compile(function () {
-                        console.log('<< 完成编译'.green, file);
-                        master.watch();
-                        done();
-                    });
+                each: function (task, index, done) {
+                    task(done);
                 },
 
-                all: function () {  //已全部完成
-                   
+                all: function () {
                     Log.allDone('全部编译完成');
                     Watcher.log();
-
                     done && done();
                 },
+
             });
         },
+
+
 
         /**
         * 统计整个站点信息。
@@ -6476,29 +6425,426 @@ define('WebSite', function (require, module, exports) {
 
 
 
-define('WebSite/Log', function (require, module, exports) {
+/**
+* 
+*/
+define('WebSite/Masters', function (require, module, exports) {
 
+    var $ = require('$');
+    var Path = require('Path');
+    var File = require('File');
+    var Patterns = require('Patterns');
+    
+    var MasterPage = require('MasterPage');
+    var Tasks = require('Tasks');
+    var JS = require('JS');
+    var Log = require('Log');
 
-    function seperate() {
-        console.log('------------------------------------------------------------------------------'.magenta);
-    }
-
-    function allDone(s) {
-        console.log(('=================================' + s + '=================================').green);
-    }
-
-    function logArray(list, color) {
-        color = color || 'green';
-        console.log('    ' + list.join('\r\n    ')[color]);
-    }
 
 
 
     return {
-        'seperate': seperate,
-        'allDone': allDone,
-        'logArray': logArray,
+
+
+        /**
+        * 构建所有模板页。
+        */
+        build: function (meta, options) {
+
+            //处理模板页。
+            return function (done) {
+
+                var masters = meta.masters;
+                var cssDir = meta.cssDir;
+                var buildDir = meta.buildDir;
+
+
+                //从模式中获取真实的 master 文件列表。
+                masters = Patterns.getFiles(buildDir, masters);
+                console.log('匹配到'.bgGreen, masters.length.toString().cyan, '个模板页:');
+                Log.logArray(masters);
+
+
+                //单独处理需要替换的文件，如 config.js。
+                var inlines = []; //记录需要内联的文件。
+                var process = options.process || {};
+
+                Object.keys(process).forEach(function (pattern) {
+
+                    var item = process[pattern];
+
+                    var files = Patterns.combine(buildDir, pattern);
+                    files = Patterns.getFiles(files);
+
+                    if (typeof item == 'function') {  //针对 item 为一个回调函数时。
+                        files.forEach(function (file) {
+                            var content = File.read(file);
+
+                            var href = Path.relative(buildDir, file);
+                            content = item(href, content, require);
+
+                            if (content == null) {
+                                File.delete(file);
+                            }
+                            else {
+                                File.write(file, content, null);
+                            }
+                        });
+                    }
+                    else {  //针对 item 为一个对象时。
+                        files.forEach(function (file) {
+                            if (item.minify) {
+                                var content = File.read(file);
+                                JS.minify(content, {
+                                    'dest': file,
+                                });
+                            }
+
+                            var inline = item.inline;
+                            if (inline == 'auto') { //当指定为 auto 时，则根据 master 页的个数决定是否内联。
+                                inline = masters.length == 1;
+                            }
+
+                            var deleted = item.delete;
+                            if (deleted == 'auto') { //当指定为 auto 时，则根据 inline 决定是否删除。
+                                deleted = inline;
+                            }
+
+                            if (inline) {
+                                inlines.push({
+                                    'file': file,
+                                    'delete': deleted,
+                                });
+                            }
+                        });
+                    }
+
+                });
+
+
+
+                //短路径补全
+                var jsList = options.jsList;
+                if (jsList) {
+                    var opt = jsList.concat;
+
+                    if (opt) {
+                        var header = opt.header;
+                        var footer = opt.footer;
+                        var addPath = opt.addPath;
+
+                        if (header) {
+                            opt.header = Path.join(buildDir, header);
+                        }
+                        if (footer) {
+                            opt.footer = Path.join(buildDir, footer);
+                        }
+                        if (addPath === true) {
+                            opt.addPath = buildDir; //添加文件路径的注释所使用的相对路径。
+                        }
+
+                    }
+                }
+
+
+                Tasks.parallel({
+                    data: masters,
+
+                    each: function (file, index, done) {
+                        Log.seperate();
+                        console.log('>> 开始构建'.cyan, file);
+
+                        var href = Path.relative(buildDir, file);
+
+                        var master = new MasterPage(href, {
+                            'htdocsDir': buildDir,
+                            'cssDir': cssDir,
+                        });
+
+                        master.build({
+                            'inlines': inlines,
+                            'minifyHtml': options.minifyHtml,
+                            'minifyCss': options.minifyCss,
+                            'minifyJs': options.minifyJs,
+                            'jsList': options.jsList,
+                            'lessLinks': options.lessLinks,
+                            'lessList': options.lessList,
+                            'htmlLinks': options.htmlLinks,
+
+                            'done': function () {
+                                console.log('<< 完成构建'.green, file);
+                                done(master);
+                            },
+                        });
+                    },
+
+                    all: function (masters) {
+                        //console.log('>> 开始执行清理操作...'.yellow);
+                        masters.forEach(function (master) {
+                            master.clean();
+                        });
+
+                        done(); //完成当前任务。
+                    },
+
+                });
+
+            };
+
+        },
+
+
+
+        /**
+        * 编译所有模板页，完成后开启监控。
+        */
+        watch: function (meta) {
+
+            //处理模板页。
+            return function (done) {
+
+                var masters = meta.masters;
+                var htdocsDir = meta.htdocsDir;
+                var cssDir = meta.cssDir;
+
+                //从模式中获取真实的文件列表
+                masters = Patterns.getFiles(htdocsDir, masters);
+                console.log('匹配到'.bgGreen, masters.length.toString().cyan, '个模板页:');
+                Log.logArray(masters);
+
+                Tasks.parallel({
+                    data: masters,
+                    each: function (file, index, done) {
+
+                        Log.seperate();
+                        console.log('>> 开始编译'.cyan, file);
+
+                        var href = Path.relative(htdocsDir, file);
+                        var master = new MasterPage(href, {
+                            'htdocsDir': htdocsDir,
+                            'cssDir': cssDir,
+                        });
+
+                        master.compile(function () {
+                            console.log('<< 完成编译'.green, file);
+                            master.watch();
+                            done();
+                        });
+                    },
+
+                    all: function () {  //已全部完成
+                        done();
+                    },
+                });
+            };
+
+
+        },
+
+
+
     };
+
+
+
+
+});
+
+
+
+
+
+
+
+define('WebSite/Packages', function (require, module, exports) {
+
+    var $ = require('$');
+    var Path = require('Path');
+    var Patterns = require('Patterns');
+    
+    var Package = require('Package');
+    var Tasks = require('Tasks');
+    var Log = require('Log');
+
+
+
+    return {
+
+        /**
+        * 构建所有的包文件
+        */
+        build: function (meta, options) {
+
+            //处理打包。
+            return function (done) {
+
+                var packages = meta.packages;
+                var cssDir = meta.cssDir;
+                var packageDir = meta.packageDir;
+                var packageFile = meta.packageFile;
+                var buildDir = meta.buildDir;
+
+                //从模式中获取真实的 package.json 文件列表。
+                packages = Patterns.getFiles(buildDir, packages);
+
+                var count = packages.length;
+                if (count == 0) {
+                    done && done();
+                    return;
+                }
+
+                console.log('匹配到'.bgGreen, count.toString().cyan, '个包文件:');
+                Log.logArray(packages, 'magenta');
+
+
+                //短路径补全
+                var opt = (options.compile || {}).js;
+                if (opt) {
+         
+                    var header = opt.header;
+                    var footer = opt.footer;
+                    var addPath = opt.addPath;
+
+                    if (header) {
+                        opt.header = Path.join(buildDir, header);
+                    }
+                    if (footer) {
+                        opt.footer = Path.join(buildDir, footer);
+                    }
+                    if (addPath === true) {
+                        opt.addPath = buildDir; //添加文件路径的注释所使用的相对路径。
+                    }
+                }
+
+
+                Tasks.parallel({
+                    data: packages,
+
+                    each: function (file, index, done) {
+                        Log.seperate();
+                        console.log('>> 开始打包'.cyan, file);
+
+                        var href = Path.relative(buildDir, file);
+
+                        var pkg = new Package(href, {
+                            'htdocsDir': buildDir,
+                            'cssDir': cssDir,
+                            'packageDir': packageDir,
+                        });
+
+                        pkg.build(options, function () {
+                            console.log('<< 完成打包'.green, file);
+                            done(pkg);
+                        });
+                    },
+
+                    all: function (pkgs) {
+
+                        
+                        //删除源分 package.json 文件。
+                        var opt = (options.compile || {}).json;
+                        if (opt.delete) {
+                            pkgs.forEach(function (pkg) {
+                                pkg.clean();
+                            });
+                        }
+
+
+                        var opt = (options.minify || {}).json;
+                        if (opt.write) {
+                            var dest = Path.join(buildDir, packageFile);
+                            Package.write(dest, pkgs, opt.minify);      //写入到总包
+
+                            done(); //完成当前任务。
+                        }
+                        
+                    },
+                });
+            };
+
+        },
+
+
+
+        /**
+        * 编译所有包文件，完成后开启监控。
+        */
+        watch: function (meta) {
+            //处理打包。
+            return function (done) {
+                var packages = meta.packages;
+                var cssDir = meta.cssDir;
+                var packageDir = meta.packageDir;
+                var packageFile = meta.packageFile;
+                var htdocsDir = meta.htdocsDir;
+
+                //从模式中获取真实的 package.json 文件列表。
+                packages = Patterns.getFiles(htdocsDir, packages);
+                var count = packages.length;
+                if (count == 0) {
+                    done && done();
+                    return;
+                }
+
+                console.log('匹配到'.bgGreen, count.toString().cyan, '个包文件:');
+                Log.logArray(packages, 'magenta');
+
+
+                var dest = Path.join(htdocsDir, packageFile);
+
+                function write(pkgs) {
+                    if (!Array.isArray(pkgs)) {
+                        pkgs = [pkgs];
+                    }
+
+                    Package.write(dest, pkgs); //写入到总包
+                }
+
+
+                Tasks.parallel({
+                    data: packages,
+                    each: function (file, index, done) {
+
+                        Log.seperate();
+                        console.log('>> 开始打包'.cyan, file);
+
+                        var href = Path.relative(htdocsDir, file);
+
+                        var pkg = new Package(href, {
+                            'htdocsDir': htdocsDir,
+                            'cssDir': cssDir,
+                            'packageDir': packageDir,
+                        });
+
+                        //更新 md5 的 query 部分。
+                        pkg.on('change', function () {
+                            write(pkg);
+                        });
+
+                        pkg.parse();
+
+                        pkg.compile(function () {
+                            console.log('<< 完成打包'.green, file);
+                            pkg.watch();
+                            done(pkg);
+                        });
+                    },
+
+                    all: function (pkgs) {  //已全部完成
+                        write(pkgs);
+                        done();
+                    },
+                    
+                });
+                
+            };
+
+
+        },
+
+    };
+
+
 
 });
 
@@ -6604,6 +6950,1542 @@ define('WebSite/Url', function (require, module, exports) {
 
 
 /**
+* 
+*/
+define('HtmlPackage', function (require, module, exports) {
+
+    var $ = require('$');
+    var File = require('File');
+    var FileRefs = require('FileRefs');
+    var Path = require('Path');
+    var Patterns = require('Patterns');
+    var Watcher = require('Watcher');
+    var Defaults = require('Defaults');
+    var HtmlLinks = require('HtmlLinks');
+    var MD5 = require('MD5');
+
+    var Mapper = $.require('Mapper');
+    var Emitter = $.require('Emitter');
+    
+
+    var mapper = new Mapper();
+
+
+
+    function HtmlPackage(dir, config) {
+
+
+        Mapper.setGuid(this);
+        config = Defaults.clone(module.id, config);
+        var emitter = new Emitter(this);
+
+
+        var meta = {
+            'dir': dir,                 //母版页所在的目录。
+            'patterns': [],             //模式列表。
+            'list': [],                 //真实 html 文件列表及其它信息。
+            'html': '',                 //编译后的  html 内容。
+            'minify': config.minify,    //
+            'watcher': null,            //监控器，首次用到时再创建。
+            'emitter': emitter,
+        };
+
+        mapper.set(this, meta);
+
+    }
+
+
+
+    HtmlPackage.prototype = {
+        constructor: HtmlPackage,
+
+
+        /**
+        * 重置为初始状态，即创建时的状态。
+        */
+        reset: function () {
+
+            var meta = mapper.get(this);
+
+            //删除之前的文件引用计数
+            meta.list.forEach(function (item) {
+                FileRefs.delete(item.file);
+                item.HtmlLinks.destroy();
+            });
+
+            $.Object.extend(meta, {
+                'patterns': [],     //模式列表。
+                'list': [],         //真实 html 文件列表及其它信息。
+                'html': '',         //编译后的  html 内容。
+            });
+
+        },
+
+        /**
+        * 根据当前模式获取对应真实的 html 文件列表。
+        */
+        get: function (patterns) {
+            var meta = mapper.get(this);
+            var dir = meta.dir;
+
+            patterns = meta.patterns = Patterns.combine(dir, patterns);
+
+            var list = Patterns.getFiles(patterns);
+
+            list = list.map(function (file, index) {
+
+                file = Path.format(file);
+                FileRefs.add(file);
+
+                return {
+                    'file': file,
+                    'html': '',                         //编译后产生的 html 内容。
+                    'HtmlLinks': new HtmlLinks(dir),    //对应的 HtmlLinks 实例。
+                };
+
+            });
+
+            meta.list = list;
+
+        },
+
+
+        /**
+        * 编译当前母版页。
+        */
+        compile: function (dest) {
+            var meta = mapper.get(this);
+            var list = meta.list;
+            var htmls = [];
+
+            list.forEach(function (item) {
+
+                var html = item.html;
+
+                if (!html) {
+                    var file = item.file;
+                    var HtmlLinks = item.HtmlLinks;
+
+                    html = File.read(file);
+
+                    HtmlLinks.reset();
+                    HtmlLinks.parse(html);
+                    html = HtmlLinks.mix();
+
+                    item.html = html;
+                }
+
+                htmls.push(html);
+
+            });
+
+            var html = meta.html = htmls.join('');
+            if (dest) {
+                File.write(dest, html);
+            }
+
+            var md5 = MD5.get(html);
+            return md5;
+
+        },
+
+        /**
+        * 对 html 进行压缩。
+        */
+        minify: function (options, dest) {
+            var Html = require('Html');
+
+            var meta = mapper.get(this);
+            var html = meta.html;
+
+            html = Html.minify(html, options);
+      
+            if (typeof dest == 'object') {
+                var name = dest.name;
+
+                if (typeof name == 'number') {
+                    name = MD5.get(html, name);
+                    name += '.html';
+                }
+
+                dest = dest.dir + name;
+            }
+
+            File.write(dest, html);
+
+            return dest;
+        },
+
+        /**
+        * 删除引用列表中所对应的 html 物理文件。
+        */
+        delete: function () {
+            var meta = mapper.get(this);
+            var list = meta.list;
+
+            list.forEach(function (item) {
+                FileRefs.delete(item.file);
+                item.HtmlLinks.delete(); //递归删除下级的
+            });
+
+        },
+
+
+
+        /**
+        * 监控当前模式下 html 文件的变化。
+        */
+        watch: function () {
+            var meta = mapper.get(this);
+            var patterns = meta.patterns;
+            if (patterns.length == 0) { //列表为空，不需要监控
+                return;
+            }
+
+            var emitter = meta.emitter;
+            var watcher = meta.watcher;
+       
+
+            if (!watcher) { //首次创建
+
+                watcher = meta.watcher = new Watcher();
+                var self = this;
+
+                function add(files) {
+
+                    var dir = meta.dir;
+
+                    //增加到列表
+                    var list = files.map(function (file, index) {
+                        file = Path.format(file);
+                        FileRefs.add(file);
+
+                        return {
+                            'file': file,
+                            'html': '',   //编译后产生的 html 内容。
+                            'HtmlLinks': new HtmlLinks(dir), //对应的 HtmlLinks 实例。
+                        };
+                    });
+
+                    meta.list = meta.list.concat(list);
+                }
+
+
+                watcher.on({
+                    'added': function (files) {
+                        add(files);
+                        emitter.fire('change');
+                    },
+
+                    'deleted': function (files) {
+
+                        //从列表中删除
+                        var obj = {};
+                        files.forEach(function (file) {
+                            FileRefs.delete(file, true);
+                            obj[file] = true;
+                        });
+
+                        meta.list = meta.list.filter(function (item) {
+                            var file = item.file;
+                            return !obj[file];
+                        });
+
+                        emitter.fire('change');
+                    },
+
+                    //重命名的，会先后触发 deleted 和 renamed
+                    'renamed': function (files) {
+                        add(files);
+                        emitter.fire('change');
+                    },
+
+                    'changed': function (files) {
+                        var obj = {};
+                        files.forEach(function (file) {
+                            obj[file] = true;
+                        });
+
+                        meta.list.forEach(function (item) {
+                            var file = item.file;
+                            if (obj[file]) {
+                                item.html = '';
+                            }
+
+                        });
+
+                        emitter.fire('change');
+                    },
+
+                });
+
+                watcher.set(patterns);
+            }
+
+            //下级节点
+            meta.list.forEach(function (item) {
+                var HtmlLinks = item.HtmlLinks;
+                HtmlLinks.watch();
+
+                HtmlLinks.on('change', function () {
+                    item.html = ''; //让之前编译的内容作废
+                    emitter.fire('change');
+                });
+
+            });
+        },
+
+
+        /**
+        * 绑定事件。
+        */
+        on: function (name, fn) {
+            var meta = mapper.get(this);
+            var emitter = meta.emitter;
+
+            var args = [].slice.call(arguments, 0);
+            emitter.on.apply(emitter, args);
+
+            return this;
+        },
+
+    };
+
+
+
+    return $.Object.extend(HtmlPackage, {
+
+       
+    });
+
+
+
+});
+
+
+
+
+
+
+/**
+* 动态 JS 资源文件列表。
+*/
+define('JsPackage', function (require, module, exports) {
+
+    var $ = require('$');
+    var File = require('File');
+    var FileRefs = require('FileRefs');
+    var Path = require('Path');
+    var Patterns = require('Patterns');
+    var Watcher = require('Watcher');
+    var Defaults = require('Defaults');
+    var MD5 = require('MD5');
+
+    var Mapper = $.require('Mapper');
+    var Emitter = $.require('Emitter');
+    
+
+
+    var mapper = new Mapper();
+
+
+
+
+    function JsPackage(dir, config) {
+
+
+        Mapper.setGuid(this);
+        config = Defaults.clone(module.id, config);
+
+        var meta = {
+
+            'dir': dir,
+            'patterns': [],     //模式列表。
+            'list': [],         //真实 js 文件列表及其它信息。
+            'content': '',      //编译后的 js 内容。
+            'emitter': new Emitter(this),
+            'watcher': null,                //监控器，首次用到时再创建。
+
+
+
+        };
+
+        mapper.set(this, meta);
+
+    }
+
+
+
+    JsPackage.prototype = {
+        constructor: JsPackage,
+
+        /**
+        * 重置为初始状态，即创建时的状态。
+        */
+        reset: function () {
+
+            var meta = mapper.get(this);
+
+            //删除之前的文件引用计数
+            meta.list.forEach(function (item) {
+                FileRefs.delete(item.file);         
+            });
+
+
+            $.Object.extend(meta, {
+                'master': '',       //母版页的内容，在 parse() 中用到。
+                'html': '',         //模式所生成的 html 块，即缓存 toHtml() 方法中的返回结果。
+                'outer': '',        //包括开始标记和结束标记在内的原始的整一块 html。
+                'patterns': [],     //模式列表。
+                'list': [],         //真实 js 文件列表及其它信息。
+                'content': '',      //编译后的 js 内容。
+            });
+
+        },
+
+        /**
+        * 根据当前模式获取对应真实的 js 文件列表。
+        */
+        get: function (patterns) {
+            var meta = mapper.get(this);
+            var dir = meta.dir;
+
+            patterns = meta.patterns = Patterns.combine(dir, patterns);
+
+            var list = Patterns.getFiles(patterns);
+
+            list = list.map(function (file, index) {
+
+                file = Path.format(file);
+                FileRefs.add(file);
+
+                return file;
+
+            });
+
+            meta.list = list;
+
+        },
+
+
+        /**
+        * 合并对应的 js 文件列表。
+        */
+        concat: function (options) {
+
+            var meta = mapper.get(this);
+            var list = meta.list;
+            if (list.length == 0) {
+                meta.content = '';
+                return;
+            }
+
+            //加上文件头部和尾部，形成闭包
+            var header = options.header;
+            if (header) {
+                header = Path.format(header);
+                FileRefs.add(header);
+                list = [header].concat(list);
+            }
+
+            var footer = options.footer;
+            if (footer) {
+                footer = Path.format(footer);
+                FileRefs.add(footer);
+                list = list.concat(footer);
+            }
+
+            var JS = require('JS');
+            var content = meta.content = JS.concat(list, options);
+            var md5 = MD5.get(content);
+
+            return md5;
+
+        },
+
+        /**
+        * 压缩合并后的 js 文件。
+        */
+        minify: function (dest) {
+
+            var meta = mapper.get(this);
+            var content = meta.content;
+            var JS = require('JS');
+
+            //直接从内容压缩，不读取文件
+            content = meta.content = JS.minify(content);
+
+            if (typeof dest == 'object') {
+                var name = dest.name;
+                if (typeof name == 'number') {
+                    name = MD5.get(content, name);
+                    name += '.js';
+                }
+
+                dest = dest.dir + name;
+                File.write(dest, content); //写入合并后的 js 文件
+            }
+
+            return dest;
+        },
+
+
+
+        /**
+        * 监控当前模式下 js 文件的变化。
+        */
+        watch: function () {
+            var meta = mapper.get(this);
+            var patterns = meta.patterns;
+            if (patterns.length == 0) { //列表为空，不需要监控
+                return;
+            }
+
+            var watcher = meta.watcher;
+
+            if (!watcher) { //首次创建
+               
+                watcher = meta.watcher = new Watcher();
+
+                var self = this;
+                var emitter = meta.emitter;
+
+                function add(files) {
+
+                    //增加到列表
+                    var list = files.map(function (file, index) {
+                        file = Path.format(file);
+                        FileRefs.add(file);
+                        return file;
+                    });
+
+                    meta.list = meta.list.concat(list);
+                }
+
+
+
+                watcher.on({
+                    'added': function (files) {
+                        add(files);
+                        emitter.fire('change');
+                    },
+
+                    'deleted': function (files) {
+                        //从列表中删除
+                        var obj = {};
+                        files.forEach(function (file) {
+                            FileRefs.delete(file, true);
+                            obj[file] = true;
+                        });
+
+                        meta.list = meta.list.filter(function (file) {
+                            return !obj[file];
+                        });
+
+                        emitter.fire('change');
+                    },
+
+                    //重命名的，会先后触发 deleted 和 renamed
+                    'renamed': function (files) {
+                        add(files);
+                        emitter.fire('change');
+                    },
+
+                    'changed': function (files) {
+                        emitter.fire('change');
+                    },
+
+                });
+                
+            }
+
+
+            watcher.set(patterns);
+
+        },
+
+
+
+
+
+        /**
+        * 删除模式列表中所对应的 js 物理文件。
+        */
+        delete: function () {
+            var meta = mapper.get(this);
+
+            meta.list.forEach(function (item) {
+                FileRefs.delete(item.file);
+            });
+        },
+
+        /**
+        * 绑定事件。
+        */
+        on: function (name, fn) {
+            var meta = mapper.get(this);
+            var emitter = meta.emitter;
+
+            var args = [].slice.call(arguments, 0);
+            emitter.on.apply(emitter, args);
+
+            return this;
+        },
+
+    };
+
+
+    return $.Object.extend(JsPackage, {
+
+       
+    });
+
+
+
+});
+
+
+
+
+
+
+/**
+* 动态 Less 资源文件列表。
+*/
+define('LessPackage', function (require, module, exports) {
+
+    var $ = require('$');
+    var File = require('File');
+    var FileRefs = require('FileRefs');
+    var Watcher = require('Watcher');
+    var MD5 = require('MD5');
+    var Path = require('Path');
+    var Patterns = require('Patterns');
+    var Defaults = require('Defaults');
+    var MD5 = require('MD5');
+
+    var Mapper = $.require('Mapper');
+    var Emitter = $.require('Emitter');
+
+   
+
+    var mapper = new Mapper();
+
+
+
+    function LessPackage(dir, config) {
+
+
+        Mapper.setGuid(this);
+        config = Defaults.clone(module.id, config);
+
+
+        var meta = {
+            'dir': dir,         //母版页所在的目录。
+            'patterns': [],     //模式列表。
+            'list': [],         //真实 less 文件列表。
+            'less$item': {},    //less 文件所对应的信息
+            'content': '',      //合并后或压缩后的内容。
+
+            'emitter': new Emitter(this),
+            'watcher': null,    //监控器，首次用到时再创建
+
+        };
+
+        mapper.set(this, meta);
+
+    }
+
+
+
+    LessPackage.prototype = {
+        constructor: LessPackage,
+
+        /**
+        * 重置为初始状态，即创建时的状态。
+        */
+        reset: function () {
+            var meta = mapper.get(this);
+            var less$item = meta.less$item;
+
+            meta.list.forEach(function (less) {
+                var item = less$item[less];
+                FileRefs.delete(less);
+            });
+
+
+            $.Object.extend(meta, {
+                'patterns': [],     //模式列表。
+                'list': [],         //真实 less 文件列表。
+                'less$item': {},    //less 文件所对应的信息
+            });
+        },
+
+
+        /**
+        * 根据当前模式获取对应真实的 less 文件列表和将要产生 css 文件列表。
+        */
+        get: function (patterns) {
+            var meta = mapper.get(this);
+            var less$item = meta.less$item;
+
+            patterns = meta.patterns = Patterns.combine(meta.dir, patterns);
+
+            var list = Patterns.getFiles(patterns);
+
+            list.forEach(function (less) {
+                //如 less = '../htdocs/html/test/style/less/index.less';
+
+                if (less$item[less]) { //已处理过该项，针对 watch() 中的频繁调用。
+                    return;
+                }
+
+                less$item[less] = {
+                    'content': '',  //编译后的 css 内容。
+                    'md5': '',      //编译后的 css 内容对应的 md5 值，需要用到时再去计算。
+                };
+
+                FileRefs.add(less);
+
+            });
+
+            meta.list = list;
+        },
+
+
+        /**
+        * 编译 less 文件列表(异步模式)。
+        * 如果指定了要编译的列表，则无条件进行编译。
+        * 否则，从原有的列表中过滤出尚未编译过的文件进行编译。
+        * 已重载:
+            compile(list, fn);
+            compile(list, options);
+            compile(list);
+            compile(fn);
+            compile(options);
+            compile(options, fn);
+        * @param {Array} [list] 经编译的 less 文件列表。 
+            如果指定了具体的 less 文件列表，则必须为当前文件引用模式下的子集。 
+            如果不指定，则使用原来已经解析出来的文件列表。
+            提供了参数 list，主要是在 watch() 中用到。
+        */
+        compile: function (list, options) {
+            var fn = null;
+            if (list instanceof Array) {
+                if (typeof options == 'function') { //重载 compile(list, fn);
+                    fn = options;
+                    options = null;
+                }
+                else if (typeof options == 'object') { //重载 compile(list, options);
+                    fn = options.done;
+                }
+                else { //重载 compile(list);
+                    options = null;
+                }
+            }
+            else if (typeof list == 'function') { //重载 compile(fn);
+                fn = list;
+                list = null;
+            }
+            else if (typeof list == 'object') { //重载 compile(options); 或 compile(options, fn)
+                fn = options;
+                options = list;
+                list = null;
+                fn = fn || options.done;
+            }
+
+
+            options = options || {  //这个默认值不能删除，供开发时 watch 使用。
+                'delete': false,    //删除 less，仅提供给上层业务 build 时使用。
+            };
+
+
+            var Less = require('Less');
+            var meta = mapper.get(this);
+            var less$item = meta.less$item;
+
+            var force = !!list;         //是否强制编译
+            list = list || meta.list;
+
+            if (list.length == 0) { //没有 less 文件
+                fn && fn();
+                return;
+            }
+
+
+
+            //并行地发起异步的 less 编译
+            var Tasks = require('Tasks');
+            Tasks.parallel({
+                data: list,
+                each: function (less, index, done) {
+                    var item = less$item[less];
+
+                    //没有指定强制编译，并且该文件已经编译过了，则跳过。
+                    if (!force && item.content) {
+                        done();
+                        return;
+                    }
+
+                    Less.compile({
+                        'src': less,
+                        'delete': options.delete,
+                        'compress': false,
+                        'done': function (css) {
+                            item.content = css;
+                            done();
+                        },
+                    });
+
+                },
+                all: function () {
+                    //已全部完成
+                    fn && fn();
+                },
+            });
+        },
+
+        /**
+        * 合并对应的 css 文件列表。
+        */
+        concat: function (dest) {
+
+            var meta = mapper.get(this);
+            var list = meta.list;
+            if (list.length == 0) { //没有 less 文件
+                return;
+            }
+
+            var less$item = meta.less$item;
+            var contents = [];
+
+            list.forEach(function (less) {
+                var item = less$item[less];
+                contents.push(item.content);
+            });
+
+            var content = meta.content = contents.join('');
+
+
+            if (dest) {
+                File.write(dest, content); //写入合并后的 css 文件
+            }
+
+            var md5 = MD5.get(content);
+
+            return md5;
+        },
+
+        /**
+        * 压缩合并后的 css 文件。
+        */
+        minify: function (dest, done) {
+
+            var meta = mapper.get(this);
+            var content = meta.content;
+            var Less = require('Less');
+
+            
+            
+            Less.minify(content, function (css) {
+
+                if (typeof dest == 'object') {
+                    var name = dest.name;
+
+                    if (typeof name == 'number') {
+                        name = MD5.get(css, name);
+                        name += '.css';
+                    }
+
+                    dest = dest.dir + name;
+                }
+
+                File.write(dest, css);
+
+                done && done(dest, css);
+            });
+
+        },
+
+        /**
+        * 监控当前模式下的所有 less 文件。
+        */
+        watch: function () {
+            var meta = mapper.get(this);
+            var patterns = meta.patterns;
+
+            if (patterns.length == 0) { //列表为空，不需要监控
+                return;
+            }
+
+            var watcher = meta.watcher;
+            if (!watcher) { //首次创建
+                
+                watcher = meta.watcher = new Watcher();
+
+                var self = this;
+                var less$item = meta.less$item;
+                var emitter = meta.emitter;
+
+
+                watcher.on({
+                    'added': function (files) {
+                        self.get();
+                        self.compile(files, function () {
+                            emitter.fire('change');
+                        });
+                        
+                    },
+
+                    'deleted': function (files) {
+
+                        //删除对应的记录
+                        files.forEach(function (less) {
+                            var item = less$item[less];
+                            delete less$item[less];
+
+                            FileRefs.delete(less, true);
+                        });
+
+                        self.get();
+
+                        emitter.fire('change');
+                    },
+
+                    //重命名的，会分别触发：deleted 和 renamed
+                    'renamed': function (files) {
+                        self.get();
+                        self.compile(files, function () {
+                            emitter.fire('change');
+                        });
+                        
+                    },
+
+                    'changed': function (files) {
+
+                        //让对应的记录作废
+                        files.forEach(function (less) {
+                            var item = less$item[less];
+                            item.md5 = '';
+                            item.content = '';
+                        });
+
+                        self.compile(files, function () {
+                            emitter.fire('change');
+                        });
+                    },
+
+                });
+            }
+
+            watcher.set(patterns);
+        },
+
+
+
+        /**
+        * 绑定事件。
+        */
+        on: function (name, fn) {
+            var meta = mapper.get(this);
+            var emitter = meta.emitter;
+
+            var args = [].slice.call(arguments, 0);
+            emitter.on.apply(emitter, args);
+
+            return this;
+        },
+
+    };
+
+
+
+    return LessPackage;
+
+
+
+});
+
+
+
+
+
+
+/**
+* 私有包。
+*/
+define('Package', function (require, module, exports) {
+
+    var $ = require('$');
+    var path = require('path');
+
+    var File = require('File');
+    var FileRefs = require('FileRefs');
+    var Path = require('Path');
+    var Watcher = require('Watcher');
+    var Defaults = require('Defaults');
+    var Lines = require('Lines');
+    var Url = require('Url');
+    var Patterns = require('Patterns');
+
+    var Mapper = $.require('Mapper');
+    var Emitter = $.require('Emitter');
+    
+    var HtmlPackage = require('HtmlPackage');
+    var JsPackage = require('JsPackage');
+    var LessPackage = require('LessPackage');
+
+    var mapper = new Mapper();
+    
+
+
+
+    function Package(file, config) {
+
+        Mapper.setGuid(this);
+        config = Defaults.clone(module.id, config);
+
+        var htdocsDir = config.htdocsDir;
+        file = Path.join(htdocsDir, file);
+
+        var dir = Path.dirname(file); //分包 package.json 文件所在的目录
+
+        var meta = {
+            'dir': dir, 
+            'file': file,
+
+            'htdocsDir': htdocsDir,
+            'packageDir': config.packageDir,
+            'cssDir': config.cssDir,
+            'compile': config.compile,
+            'minify': config.minify,
+            'md5': config.md5,
+
+
+            'emitter': new Emitter(this),
+            'watcher': null, //监控器，首次用到时再创建
+
+            'HtmlPackage': new HtmlPackage(dir),
+            'JsPackage': new JsPackage(dir),
+            'LessPackage': new LessPackage(dir),
+        };
+
+        mapper.set(this, meta);
+    }
+
+
+
+    Package.prototype = {
+        constructor: Package,
+
+
+        /**
+        * 
+        */
+        parse: function () {
+            var meta = mapper.get(this);
+            var file = meta.file;
+            var dir = meta.dir;
+ 
+            var json = File.readJSON(file);
+            var name = json.name;
+
+            //如果未指定 name，则以包文件所在的目录的第一个 js 文件名作为 name。
+            if (!name) {
+                var files = Patterns.getFiles(dir, '*.js');
+                name = files[0];
+                if (!name) {
+                    throw new Error('包文件 ' + file + ' 中未指定 name 字段，且未在其的所在目录找到任何 js 文件。');
+                }
+                name = Path.relative(dir, name);
+                name = name.slice(0, -3); //去掉 `.js` 后缀。
+            }
+
+
+            var packageDir = meta.htdocsDir + meta.packageDir;
+            var cssDir = meta.htdocsDir + meta.cssDir;
+
+            $.Object.extend(meta, {
+                'name': name,
+                'js': {
+                    'src': json.js,
+                    'dir': packageDir,
+                    'dest': packageDir + name + '.js',
+                    'md5': '',
+                },
+                'html': {
+                    'src': json.html,
+                    'dir': packageDir,
+                    'dest': packageDir + name + '.html',
+                    'md5': '',
+                },
+                'css': {
+                    'src': json.css,
+                    'dir': cssDir,
+                    'dest': cssDir + name + '.css',
+                    'md5': '',
+                },
+            });
+
+        },
+
+        
+        /**
+        * 编译当前包文件。
+        */
+        compile: function (options, done) {
+
+            //重载 compile(done)
+            if (typeof options == 'function') {
+                done = options;
+                options = null;
+            }
+
+            var meta = mapper.get(this);
+            var HtmlPackage = meta.HtmlPackage;
+            var JsPackage = meta.JsPackage;
+            var LessPackage = meta.LessPackage;
+
+
+            options = options || meta.compile;
+
+            var file = options.html.write ? meta.html.dest : '';
+
+            HtmlPackage.reset();
+            HtmlPackage.get(meta.html.src);
+
+            meta.html.md5 = HtmlPackage.compile(file);
+
+            if (options.html.delete) {
+                HtmlPackage.delete();
+            }
+
+
+            var js = options.js;
+            js.dest = js.write ? meta.js.dest : '';
+
+            JsPackage.reset();
+            JsPackage.get(meta.js.src);
+            meta.js.md5 = JsPackage.concat(js);
+
+
+            var less = options.less;
+            var opt = { delete: less.delete };
+
+            LessPackage.reset();
+            LessPackage.get(meta.css.src);
+
+            LessPackage.compile(opt, function () {
+
+                var css = less.write ? meta.css.dest : '';
+                meta.css.md5 = LessPackage.concat(css);
+
+                done && done();
+            });
+        },
+
+        /**
+        * 压缩。
+        */
+        minify: function (options, done) {
+            //重载 minify(done)
+            if (typeof options == 'function') {
+                done = options;
+                options = null;
+            }
+
+            var meta = mapper.get(this);
+            var dest = meta.dest;
+            var HtmlPackage = meta.HtmlPackage;
+            var JsPackage = meta.JsPackage;
+            var LessPackage = meta.LessPackage;
+
+
+            options = options || meta.minify;
+
+            var opt = options.html;
+            if (opt) {
+                if (opt === true) { //当指定为 true 时，则使用默认的压缩选项。
+                    opt = meta.minify.html;
+                }
+
+                var html = meta.html;
+                html.dest = HtmlPackage.minify(opt, {
+                    'dir': html.dir,
+                    'name': 32,         //md5 的长度。
+                });
+
+                html.md5 = '';
+            }
+
+
+            var opt = options.js;
+            if (opt && opt.write) {
+                var js = meta.js;
+                js.dest = JsPackage.minify({
+                    'dir': js.dir,
+                    'name': 32,
+                });
+
+                js.md5 = '';
+            }
+
+
+            var opt = options.less;
+            if (opt && opt.write) {
+                var css = meta.css;
+                var dest = {
+                    'dir': css.dir,
+                    'name': 32,         //md5 的长度。
+                };
+
+                LessPackage.minify(dest, function (dest, content) {
+                    css.dest = dest;
+                    css.md5 = '';
+
+                    done && done();
+                });
+            }
+            else {
+                done && done();
+            }
+           
+        },
+
+        /**
+        * 监控当前包文件及各个资源引用模块。
+        */
+        watch: function () {
+            var meta = mapper.get(this);
+            var watcher = meta.watcher;
+            if (watcher) {
+                return;
+            }
+
+            //首次创建
+            var HtmlPackage = meta.HtmlPackage;
+            var JsPackage = meta.JsPackage;
+            var LessPackage = meta.LessPackage;
+            var emitter = meta.emitter;
+
+            var self = this;
+
+            watcher = meta.watcher = new Watcher();
+            watcher.set(meta.file);      //这里只需要添加一次
+
+            watcher.on('changed', function () {
+                self.parse();       //json 文件发生变化，重新解析。
+                self.compile();     //根节点发生变化，需要重新编译。
+
+                HtmlPackage.watch();
+                JsPackage.watch();
+                LessPackage.watch();
+            });
+
+            HtmlPackage.watch();
+            HtmlPackage.on('change', function () {
+                var html = meta.html;
+                html.md5 = HtmlPackage.compile(html.dest);
+                emitter.fire('change');
+            });
+
+            JsPackage.watch();
+            JsPackage.on('change', function () {
+                var js = meta.js;
+                js.md5 = JsPackage.concat({ 'dest': js.dest, });
+                emitter.fire('change');
+
+            });
+
+            LessPackage.watch();
+            LessPackage.on('change', function () {
+                var css = meta.css;
+                css.md5 = LessPackage.concat(css.dest);
+                emitter.fire('change');
+            });
+
+
+
+        },
+
+        /**
+        * 构建。
+        */
+        build: function (options, done) {
+
+            var pkg = this;
+            pkg.parse();
+
+            pkg.compile(options.compile, function () {
+
+                pkg.minify(options.minify, function () {
+           
+                    done && done();
+
+                });
+            });
+
+        },
+
+        /**
+        * 绑定事件。
+        */
+        on: function (name, fn) {
+            var meta = mapper.get(this);
+            var emitter = meta.emitter;
+
+            var args = [].slice.call(arguments, 0);
+            emitter.on.apply(emitter, args);
+
+            return this;
+        },
+
+        clean: function () {
+            var meta = mapper.get(this);
+            FileRefs.delete(meta.file);
+        },
+
+        /**
+        * 获取输出目标包的信息。
+        * 该方法由静态方法 write 调用。
+        */
+        get: function () {
+            var meta = mapper.get(this);
+            var name = meta.name;
+            var htdocsDir = meta.htdocsDir;
+
+            var data = {};
+
+            ['js', 'html', 'css'].forEach(function (type) {
+
+                var item = meta[type];
+                var href = Path.relative(htdocsDir, item.dest);
+                var md5 = item.md5.slice(0, meta.md5);
+
+                if (md5) {
+                    href = href + '?' + md5;
+                }
+
+                data[type] = href;
+
+            });
+
+            var obj = {};
+            obj[name] = data;
+
+            return obj;
+        },
+
+
+    };
+
+
+    //静态方法。
+    return $.Object.extend(Package, {
+
+        /**
+        * 写入到指定的总包。
+        */
+        write: function (dest, pkgs, minify) {
+
+            var json = File.readJSON(dest) || {};
+
+            pkgs.forEach(function (pkg) {
+
+                var obj = pkg.get();
+
+                $.Object.extend(json, obj);
+            });
+      
+            File.writeJSON(dest, json, minify);
+        },
+    });
+
+
+
+});
+
+
+
+
+
+
+/**
+* 对第三方库 html 的封装。
+*/
+define('Html', function (require, module, exports) {
+
+    var $ = require('$');
+    var Defaults = require('Defaults');
+
+    //https://github.com/kangax/html-minifier
+    var Minifier = require('html-minifier');
+
+
+    var defaults = Defaults.clone(module.id);
+
+
+
+    
+
+    return {
+   
+        /**
+        * 对 html 进行压缩。
+        */
+        minify: function (html, config) {
+
+            config = $.Object.extendDeeply({}, defaults.minify, config);
+
+            html = Minifier.minify(html, config);
+
+            return html;
+        },
+    };
+
+});
+
+
+
+
+
+
+/**
+* JS 文件工具类。
+*/
+define('JS', function (require, module, exports) {
+
+    var $ = require('$');
+    var path = require('path');
+
+    var File = require('File');
+    var FileRefs = require('FileRefs');
+    var Path = require('Path');
+    var MD5 = require('MD5');
+
+
+
+
+
+    return {
+        
+
+        /**
+        * 合并 js 文件列表。
+        */
+        concat: function (list, options) {
+
+            if (list.length == 0) {
+                return '';
+            }
+
+            var contents = [];
+            
+            list.forEach(function (src, index) {
+
+                var file = src;
+
+                //添加文件路径的注释
+                var addPath = options.addPath;
+                if (addPath) { 
+                    //如果传入的是字符串，则使用相对于它的地址。
+                    if (typeof addPath == 'string') {
+                        file = Path.relative(addPath, src);
+                    }
+
+                    contents.push('\r\n// ' + file + '\r\n');
+                }
+                
+
+                var s = File.read(src);
+                contents.push(s);
+
+                //删除源分 js 文件
+                if (options.delete) {
+                    FileRefs.delete(src);
+                }
+
+            });
+
+            console.log('合并'.bgGreen, list.length.toString().cyan, '个文件:');
+            console.log('    ' + list.join('\r\n    ').gray);
+
+
+            var content = contents.join('');
+            var dest = options.dest;
+ 
+            if (dest) {
+                if (typeof dest == 'object') {
+                    var name = dest.name;
+
+                    if (typeof name == 'number') {
+                        name = MD5.get(content, name);
+                        name += '.js';
+                    }
+
+                    dest = dest.dir + name;
+                }
+
+                File.write(dest, content); //写入合并后的 js 文件
+            }
+
+        
+
+            return content;
+
+        },
+
+
+
+        /**
+        * 压缩 js 内容。
+        */
+        minify: function (content, options) {
+
+            options = options || {};
+
+            //https://github.com/mishoo/UglifyJS2
+            var UglifyJS = require('uglify-js');
+
+            //直接从内容压缩，不读取文件
+            var result = UglifyJS.minify(content, { fromString: true, });
+            content = result.code;
+
+            var dest = options.dest;
+            if (dest) {
+
+                if (typeof dest == 'object') {
+                    var name = dest.name;
+                    if (typeof name == 'number') {
+                        name = MD5.get(content, name);
+                        name += '.js';
+                    }
+
+                    dest = dest.dir + name;
+                }
+
+                File.write(dest, content); //写入合并后的 js 文件
+
+            }
+
+            return content;
+        },
+
+    };
+
+
+   
+
+
+
+});
+
+
+
+
+
+
+/**
 * 对第三方库 less 的封装。
 */
 define('Less', function (require, module, exports) {
@@ -6654,7 +8536,7 @@ define('Less', function (require, module, exports) {
             overwrite = true;  //修正一下。 当未指定时，则默认为覆盖写入。
         }
 
-        var existed = File.exists(dest);
+        var existed = dest ? File.exists(dest) : false;
         var md5$item = compress ? md5$min : md5$debug;
 
 
@@ -6728,9 +8610,41 @@ define('Less', function (require, module, exports) {
     }
 
 
+    
+    /**
+    * 压缩合并后的 css 文件。
+    */
+    function minify (content, fn) {
+         
+        if (!content) {
+            fn && fn('');
+            return;
+        }
+
+        Less.render(content, {
+            compress: true,
+
+        }, function (error, output) {
+
+            if (error) {
+                console.log('less 压缩错误:'.bgRed, error.message.bgRed);
+                console.log(error);
+                throw error;
+            }
+
+            var css = output.css;
+
+            fn && fn(css);
+
+        });
+
+    }
+
+
 
     return {
-        compile: compile,
+        'compile': compile,
+        'minify': minify,
     };
 
 });
@@ -6777,7 +8691,7 @@ define('Watcher', function (require, module, exports) {
 
         var watcher = new Gaze(files, {
             debounceDelay: 0,
-            maxListeners: 999,
+            maxListeners: 9999,
         });
 
         var events = {};        //记录需要绑定的事件类型。
@@ -7221,6 +9135,76 @@ define('WebSite.defaults', /**@lends WebSite.defaults*/ {
 
 
 /**
+* Package 模块的默认配置
+* @name Package.defaults
+*/
+define('Package.defaults', /**@lends Package.defaults*/ {
+
+    htdocsDir: '../htdocs/',
+    cssDir: 'style/css/',
+    md5: 4,                     //输出到总包的路径中所使用的 md5 的长度。
+
+    compile: {
+        'html': {
+            write: true,        //写入编译后的 html 文件。
+            delete: false,      //删除编译前的源 html 文件。
+        },
+        'js': {
+            write: true,        //写入合并后的 js。
+            delete: false,      //删除合并前的源 js 文件。
+            addPath: true,      //添加文件路径的注释。
+        },
+        'less': {
+            write: true,        //写入编译后的 css 文件。
+            delete: false,      //删除编译前的源 less 文件。
+        },
+    },
+
+    minify: {
+        html: {
+            collapseWhitespace: true,
+            removeEmptyAttributes: true,
+            removeScriptTypeAttributes: true,
+            removeStyleLinkTypeAttributes: true,
+            removeRedundantAttributes: true,
+            minifyJS: false,
+            minifyCSS: false,
+            minifyURLs: true,
+            keepClosingSlash: true,
+        },
+        js: {
+            'write': true,      //写入压缩后的 js。
+        },
+        less: {
+            'write': true,     //写入压缩后的 css 文件。
+        },
+    },
+
+});
+
+
+/**
+* Html 模块的默认配置
+* @name Html.defaults
+*/
+define('Html.defaults', /**@lends Html.defaults*/ {
+    
+    'minify': {
+        //removeAttributeQuotes: true, //引号不能去掉，否则可能会出错。
+        collapseWhitespace: true,
+        removeEmptyAttributes: true,
+        removeScriptTypeAttributes: true,
+        removeStyleLinkTypeAttributes: true,
+        removeRedundantAttributes: true,
+        minifyJS: false,
+        minifyCSS: false,
+        minifyURLs: true,
+        keepClosingSlash: true,
+    },
+});
+
+
+/**
 * Watcher 模块的默认配置
 * @name Watcher.defaults
 */
@@ -7258,7 +9242,7 @@ Module.expose({
     ////html
     //'Attribute': true,
     //'CssLinks': true,
-    //'HtmlLinks': true,
+    'HtmlLinks': true,
     //'HtmlList': true,
     //'JsList': true,
     //'JsScripts': true,
@@ -7266,6 +9250,8 @@ Module.expose({
     //'MasterPage': true,
     //'Tag': true,
 
+    'JsPackage': true,
+    'Package': true,
 
     'File': true,
     'Patterns': true,

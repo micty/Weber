@@ -288,7 +288,9 @@ define('HtmlLinks', function (require, module, exports) {
             var list = meta.list;
 
             list.forEach(function (item) {
+
                 FileRefs.delete(item.file);
+
                 item.links.delete(); //递归删除下级的
             });
 

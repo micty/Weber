@@ -9,16 +9,18 @@ module.exports = [
             'Node.js',
             '$.js',
             'Weber.js',
+            'console.js',
         ]
     },
     {
         dir: 'excore',
         files: [
-            'Array.js',
             'Config.js',
             'Defaults.js',
+            'Log.js',
             'Config/Data.js',
             'String.js',
+            'Tasks.js',
             'Url.js',
         ]
     },
@@ -69,15 +71,28 @@ module.exports = [
             {
                 dir: 'WebSite',
                 files: [
-                    'Log.js',
+                    'Masters.js',
+                    'Packages.js',
                     'Url.js',
                 ],
             },
         ],
     },
     {
+        dir: 'pack',
+        files: [
+            'HtmlPackage.js',
+            'JsPackage.js',
+            'LessPackage.js',
+            'Package.js',
+
+        ],
+    },
+    {
         dir: 'third',
         files: [
+            'Html.js',
+            'JS.js',
             'Less.js',
             'Watcher.js',
         ],
@@ -117,8 +132,15 @@ module.exports = [
                         ],
                     },
                     {
+                        dir: 'pack',
+                        files: [
+                            'Package.js',
+                        ],
+                    },
+                    {
                         dir: 'third',
                         files: [
+                            'Html.js',
                             'Watcher.js',
                         ],
                     },

@@ -50,7 +50,7 @@ define('Less', function (require, module, exports) {
             overwrite = true;  //修正一下。 当未指定时，则默认为覆盖写入。
         }
 
-        var existed = File.exists(dest);
+        var existed = dest ? File.exists(dest) : false;
         var md5$item = compress ? md5$min : md5$debug;
 
 
@@ -124,9 +124,41 @@ define('Less', function (require, module, exports) {
     }
 
 
+    
+    /**
+    * 压缩合并后的 css 文件。
+    */
+    function minify (content, fn) {
+         
+        if (!content) {
+            fn && fn('');
+            return;
+        }
+
+        Less.render(content, {
+            compress: true,
+
+        }, function (error, output) {
+
+            if (error) {
+                console.log('less 压缩错误:'.bgRed, error.message.bgRed);
+                console.log(error);
+                throw error;
+            }
+
+            var css = output.css;
+
+            fn && fn(css);
+
+        });
+
+    }
+
+
 
     return {
-        compile: compile,
+        'compile': compile,
+        'minify': minify,
     };
 
 });

@@ -120,7 +120,11 @@ define('Path', function (require, module, exports) {
    
 
     function join(a, b) {
-        return format(path.join(a, b));
+
+        var args = [].slice.call(arguments, 0);
+        var all = path.join.apply(path, args);
+
+        return format(all);
     }
 
 

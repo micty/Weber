@@ -343,8 +343,8 @@ define('CssLinks', function (require, module, exports) {
             var list = meta.list;
 
             //并行地发起异步编译。
-            var $Array = require('Array');
-            $Array.parallel({
+            var Tasks = require('Tasks');
+            Tasks.parallel({
                 data: list,
                 all: done,
                 each: function (item, index, done) {

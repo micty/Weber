@@ -460,8 +460,6 @@ define('JsList', function (require, module, exports) {
             }
            
 
-            var build = meta.build;
-
             list = $.Array.keep(list, function (item) {
                 return item.file;
             });
@@ -481,44 +479,12 @@ define('JsList', function (require, module, exports) {
                 list = list.concat(footer);
             }
 
-
-            var contents = [];
-            var files = [];
-            
-            list.forEach(function (src, index) {
-
-                var file = src;
-
-                //添加文件路径的注释
-                var addPath = options.addPath;
-                if (addPath) { 
-                    //如果传入的是字符串，则使用相对于它的地址。
-                    if (typeof addPath == 'string') {
-                        file = path.relative(addPath, src);
-                        file = Path.format(file);
-                    }
-
-                    contents.push('\r\n// ' + file + '\r\n');
-                }
-                
-
-                var s = File.read(src);
-                contents.push(s);
-
-                files.push(file);
+            var JS = require('JS');
+            var content = JS.concat(list, {
+                'addPath': options.addPath,
+                'delete': options.delete,
             });
 
-            console.log('合并'.bgGreen, files.length.toString().cyan, '个文件:');
-            console.log('    ' + files.join('\r\n    ').gray);
-
-            if (options.delete) {//删除源分 js 文件
-                list.forEach(function (file) {
-                    FileRefs.delete(file);
-                });
-            }
-
-
-            var content = contents.join('');
 
             var name = options.name || 32;
             var isMd5Name = typeof name == 'number';  //为数字时，则表示使用 md5 作为名称。
@@ -535,7 +501,7 @@ define('JsList', function (require, module, exports) {
             }
 
 
-            $.Object.extend(build, {
+            $.Object.extend(meta.build, {
                 'file': file,
                 'content': content,
             });
@@ -575,9 +541,7 @@ define('JsList', function (require, module, exports) {
                 options = meta.minify;
             }
 
-            //https://github.com/mishoo/UglifyJS2
-            var UglifyJS = require('uglify-js');
-            
+
             var build = meta.build;
             var content = build.content;
 
@@ -585,10 +549,8 @@ define('JsList', function (require, module, exports) {
                 File.delete(build.file);
             }
 
-
-            //直接从内容压缩，不读取文件
-            var result = UglifyJS.minify(content, {fromString: true,});
-            content = result.code;
+            var JS = require('JS');
+            content = JS.minify(content);    //直接从内容压缩，不读取文件
 
 
             var name = options.name || 32;
@@ -675,8 +637,6 @@ define('JsList', function (require, module, exports) {
             return master;
         },
 
-
-
         /**
         * 删除模式列表中所对应的 js 物理文件。
         */
@@ -701,10 +661,7 @@ define('JsList', function (require, module, exports) {
             return this;
         },
 
-
-
     };
-
 
 
     return $.Object.extend(JsList, {

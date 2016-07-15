@@ -277,8 +277,8 @@ define('LessList', function (require, module, exports) {
 
 
             //并行地发起异步的 less 编译
-            var $Array = require('Array');
-            $Array.parallel({
+            var Tasks = require('Tasks');
+            Tasks.parallel({
                 data: list,
                 each: function (less, index, done) {
                     var item = less$item[less];
