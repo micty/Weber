@@ -154,6 +154,16 @@ define('Watcher', function (require, module, exports) {
 
         },
 
+        /**
+        * Unwatch all files and reset the watch instance.
+        */
+        close: function () {
+            var meta = mapper.get(this);
+            var watcher = meta.watcher;
+            watcher.close();
+        },
+
+
         on: function (name, fn) {
             var meta = mapper.get(this);
             var emitter = meta.emitter;

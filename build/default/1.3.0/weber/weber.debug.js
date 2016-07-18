@@ -2,7 +2,7 @@
 * weber - web develop tool
 * name: default 
 * version: 1.3.0
-* build: 2016-07-15 15:09:11
+* build: 2016-07-18 16:53:23
 * files: 65(63)
 *    partial/default/begin.js
 *    core/Module.js
@@ -7235,6 +7235,16 @@ define('HtmlPackage', function (require, module, exports) {
             });
         },
 
+        /**
+        * 取消监控。
+        */
+        unwatch: function () {
+            var meta = mapper.get(this);
+            var watcher = meta.watcher;
+            if (watcher) {
+                watcher.close();
+            }
+        },
 
         /**
         * 绑定事件。
@@ -7246,7 +7256,6 @@ define('HtmlPackage', function (require, module, exports) {
             var args = [].slice.call(arguments, 0);
             emitter.on.apply(emitter, args);
 
-            return this;
         },
 
     };
@@ -7505,7 +7514,16 @@ define('JsPackage', function (require, module, exports) {
         },
 
 
-
+        /**
+        * 取消监控。
+        */
+        unwatch: function () {
+            var meta = mapper.get(this);
+            var watcher = meta.watcher;
+            if (watcher) {
+                watcher.close();
+            }
+        },
 
 
         /**
@@ -7528,9 +7546,9 @@ define('JsPackage', function (require, module, exports) {
 
             var args = [].slice.call(arguments, 0);
             emitter.on.apply(emitter, args);
-
-            return this;
         },
+
+       
 
     };
 
@@ -7882,6 +7900,16 @@ define('LessPackage', function (require, module, exports) {
         },
 
 
+        /**
+        * 取消监控。
+        */
+        unwatch: function () {
+            var meta = mapper.get(this);
+            var watcher = meta.watcher;
+            if (watcher) {
+                watcher.close();
+            }
+        },
 
         /**
         * 绑定事件。
@@ -7892,9 +7920,9 @@ define('LessPackage', function (require, module, exports) {
 
             var args = [].slice.call(arguments, 0);
             emitter.on.apply(emitter, args);
-
-            return this;
         },
+
+        
 
     };
 
@@ -7927,6 +7955,7 @@ define('Package', function (require, module, exports) {
     var Lines = require('Lines');
     var Url = require('Url');
     var Patterns = require('Patterns');
+    var Log = require('Log');
 
     var Mapper = $.require('Mapper');
     var Emitter = $.require('Emitter');
@@ -7936,7 +7965,7 @@ define('Package', function (require, module, exports) {
     var LessPackage = require('LessPackage');
 
     var mapper = new Mapper();
-    
+    var name$file = {};         //记录包的名称与文件名的对应关系，防止出现重名的包。
 
 
 
@@ -7965,9 +7994,15 @@ define('Package', function (require, module, exports) {
             'emitter': new Emitter(this),
             'watcher': null, //监控器，首次用到时再创建
 
-            'HtmlPackage': new HtmlPackage(dir),
-            'JsPackage': new JsPackage(dir),
-            'LessPackage': new LessPackage(dir),
+            'old': {},      //用来存放旧的 HtmlPackage、JsPackage 和 LessPackage。
+
+            'HtmlPackage': null,
+            'JsPackage': null,
+            'LessPackage': null,
+
+            'css': '',
+            'html': '',
+            'js': '',
         };
 
         mapper.set(this, meta);
@@ -7978,6 +8013,29 @@ define('Package', function (require, module, exports) {
     Package.prototype = {
         constructor: Package,
 
+        /**
+        * 重置上一次可能存在的结果。
+        */
+        reset: function () {
+            var meta = mapper.get(this);
+            var old = meta.old;
+
+            //先备份。 old 中的一旦有值，将再也不会变为 null。
+            old.HtmlPackage = meta.HtmlPackage;
+            old.JsPackage = meta.JsPackage;
+            old.LessPackage = meta.LessPackage;
+
+            //再清空。
+            $.Object.extend(meta, {
+                'HtmlPackage': null,
+                'JsPackage': null,
+                'LessPackage': null,
+
+                'css': '',
+                'html': '',
+                'js': '',
+            });
+        },
 
         /**
         * 
@@ -7986,6 +8044,7 @@ define('Package', function (require, module, exports) {
             var meta = mapper.get(this);
             var file = meta.file;
             var dir = meta.dir;
+            var htdocsDir = meta.htdocsDir;
  
             var json = File.readJSON(file);
             var name = json.name;
@@ -7995,40 +8054,62 @@ define('Package', function (require, module, exports) {
                 var files = Patterns.getFiles(dir, '*.js');
                 name = files[0];
                 if (!name) {
-                    throw new Error('包文件 ' + file + ' 中未指定 name 字段，且未在其的所在目录找到任何 js 文件。');
+                    console.log('包文件'.bgRed, file.yellow, '中未指定 name 字段，且未在其的所在目录找到任何 js 文件。'.bgRed);
+                    throw new Error();
                 }
                 name = Path.relative(dir, name);
                 name = name.slice(0, -3); //去掉 `.js` 后缀。
             }
+            else if (name == '*') {
+                name = Path.relative(htdocsDir, dir);
+                name = name.split('/').join('.');
+            }
 
+            var oldFile = name$file[name];
+            if (oldFile && oldFile != file) {
+                console.log('存在同名'.bgRed, name.green, '的包文件:'.bgRed);
+                Log.logArray([oldFile, file], 'yellow');
+                throw new Error();
+            }
 
-            var packageDir = meta.htdocsDir + meta.packageDir;
-            var cssDir = meta.htdocsDir + meta.cssDir;
+            name$file[name] = file;
+            meta.name = name;
 
-            $.Object.extend(meta, {
-                'name': name,
-                'js': {
-                    'src': json.js,
-                    'dir': packageDir,
-                    'dest': packageDir + name + '.js',
-                    'md5': '',
-                },
-                'html': {
+            var old = meta.old;
+            var packageDir = htdocsDir + meta.packageDir;
+
+            if (json.html) {
+                meta.HtmlPackage = old.HtmlPackage || new HtmlPackage(dir);
+                meta.html = {
                     'src': json.html,
                     'dir': packageDir,
                     'dest': packageDir + name + '.html',
                     'md5': '',
-                },
-                'css': {
+                };
+            }
+
+            if (json.js) {
+                meta.JsPackage = old.JsPackage || new JsPackage(dir);
+                meta.js = {
+                    'src': json.js,
+                    'dir': packageDir,
+                    'dest': packageDir + name + '.js',
+                    'md5': '',
+                };
+            }
+
+            if (json.css) {
+                var cssDir = htdocsDir + meta.cssDir;
+                meta.LessPackage = old.LessPackage || new LessPackage(dir);
+                meta.css = {
                     'src': json.css,
                     'dir': cssDir,
                     'dest': cssDir + name + '.css',
                     'md5': '',
-                },
-            });
+                };
+            }
 
         },
-
         
         /**
         * 编译当前包文件。
@@ -8049,39 +8130,49 @@ define('Package', function (require, module, exports) {
 
             options = options || meta.compile;
 
-            var file = options.html.write ? meta.html.dest : '';
+            if (HtmlPackage) {
+                var file = options.html.write ? meta.html.dest : '';
 
-            HtmlPackage.reset();
-            HtmlPackage.get(meta.html.src);
+                HtmlPackage.reset();
+                HtmlPackage.get(meta.html.src);
 
-            meta.html.md5 = HtmlPackage.compile(file);
+                meta.html.md5 = HtmlPackage.compile(file);
 
-            if (options.html.delete) {
-                HtmlPackage.delete();
+                if (options.html.delete) {
+                    HtmlPackage.delete();
+                }
             }
+           
 
+            if (JsPackage) {
+                var js = options.js;
+                js.dest = js.write ? meta.js.dest : '';
 
-            var js = options.js;
-            js.dest = js.write ? meta.js.dest : '';
+                JsPackage.reset();
+                JsPackage.get(meta.js.src);
+                meta.js.md5 = JsPackage.concat(js);
+            }
+            
 
-            JsPackage.reset();
-            JsPackage.get(meta.js.src);
-            meta.js.md5 = JsPackage.concat(js);
+            if (LessPackage) {
+                var less = options.less;
+                var opt = { delete: less.delete };
 
+                LessPackage.reset();
+                LessPackage.get(meta.css.src);
 
-            var less = options.less;
-            var opt = { delete: less.delete };
+                LessPackage.compile(opt, function () {
 
-            LessPackage.reset();
-            LessPackage.get(meta.css.src);
+                    var css = less.write ? meta.css.dest : '';
+                    meta.css.md5 = LessPackage.concat(css);
 
-            LessPackage.compile(opt, function () {
-
-                var css = less.write ? meta.css.dest : '';
-                meta.css.md5 = LessPackage.concat(css);
-
+                    done && done();
+                });
+            }
+            else {
                 done && done();
-            });
+            }
+           
         },
 
         /**
@@ -8103,52 +8194,60 @@ define('Package', function (require, module, exports) {
 
             options = options || meta.minify;
 
-            var opt = options.html;
-            if (opt) {
-                if (opt === true) { //当指定为 true 时，则使用默认的压缩选项。
-                    opt = meta.minify.html;
+            if (HtmlPackage) {
+                var opt = options.html;
+                if (opt) {
+                    if (opt === true) { //当指定为 true 时，则使用默认的压缩选项。
+                        opt = meta.minify.html;
+                    }
+
+                    var html = meta.html;
+                    html.dest = HtmlPackage.minify(opt, {
+                        'dir': html.dir,
+                        'name': 32,         //md5 的长度。
+                    });
+
+                    html.md5 = '';
                 }
-
-                var html = meta.html;
-                html.dest = HtmlPackage.minify(opt, {
-                    'dir': html.dir,
-                    'name': 32,         //md5 的长度。
-                });
-
-                html.md5 = '';
             }
 
+            if (JsPackage) {
+                var opt = options.js;
+                if (opt && opt.write) {
+                    var js = meta.js;
+                    js.dest = JsPackage.minify({
+                        'dir': js.dir,
+                        'name': 32,
+                    });
 
-            var opt = options.js;
-            if (opt && opt.write) {
-                var js = meta.js;
-                js.dest = JsPackage.minify({
-                    'dir': js.dir,
-                    'name': 32,
-                });
-
-                js.md5 = '';
+                    js.md5 = '';
+                }
             }
+            
+            if (LessPackage) {
+                var opt = options.less;
+                if (opt && opt.write) {
+                    var css = meta.css;
+                    var dest = {
+                        'dir': css.dir,
+                        'name': 32,         //md5 的长度。
+                    };
 
+                    LessPackage.minify(dest, function (dest, content) {
+                        css.dest = dest;
+                        css.md5 = '';
 
-            var opt = options.less;
-            if (opt && opt.write) {
-                var css = meta.css;
-                var dest = {
-                    'dir': css.dir,
-                    'name': 32,         //md5 的长度。
-                };
-
-                LessPackage.minify(dest, function (dest, content) {
-                    css.dest = dest;
-                    css.md5 = '';
-
+                        done && done();
+                    });
+                }
+                else {
                     done && done();
-                });
+                }
             }
             else {
                 done && done();
             }
+           
            
         },
 
@@ -8157,53 +8256,74 @@ define('Package', function (require, module, exports) {
         */
         watch: function () {
             var meta = mapper.get(this);
-            var watcher = meta.watcher;
-            if (watcher) {
-                return;
-            }
-
-            //首次创建
             var HtmlPackage = meta.HtmlPackage;
             var JsPackage = meta.JsPackage;
             var LessPackage = meta.LessPackage;
             var emitter = meta.emitter;
+            var old = meta.old;
 
-            var self = this;
-
-            watcher = meta.watcher = new Watcher();
-            watcher.set(meta.file);      //这里只需要添加一次
-
-            watcher.on('changed', function () {
-                self.parse();       //json 文件发生变化，重新解析。
-                self.compile();     //根节点发生变化，需要重新编译。
-
+            if (HtmlPackage) {
                 HtmlPackage.watch();
+                if (!old.HtmlPackage) {
+                    HtmlPackage.on('change', function () {
+                        var html = meta.html;
+                        html.md5 = HtmlPackage.compile(html.dest);
+                        emitter.fire('change');
+                    });
+                }
+            }
+            else if(old.HtmlPackage) {
+                old.HtmlPackage.unwatch();
+            }
+
+
+            if (JsPackage) {
                 JsPackage.watch();
+                if (!old.JsPackage) {
+                    JsPackage.on('change', function () {
+                        var js = meta.js;
+                        js.md5 = JsPackage.concat({ 'dest': js.dest, });
+                        emitter.fire('change');
+                    });
+                }
+            }
+            else if (old.JsPackage) {
+                old.JsPackage.unwatch();
+            }
+
+            if (LessPackage) {
                 LessPackage.watch();
-            });
+                if (!old.LessPackage) {
+                    LessPackage.on('change', function () {
+                        var css = meta.css;
+                        css.md5 = LessPackage.concat(css.dest);
+                        emitter.fire('change');
+                    });
+                }
+            }
+            else if (old.LessPackage) {
+                old.LessPackage.unwatch();
+            }
 
-            HtmlPackage.watch();
-            HtmlPackage.on('change', function () {
-                var html = meta.html;
-                html.md5 = HtmlPackage.compile(html.dest);
-                emitter.fire('change');
-            });
+       
+            var watcher = meta.watcher;
+            if (!watcher) {
 
-            JsPackage.watch();
-            JsPackage.on('change', function () {
-                var js = meta.js;
-                js.md5 = JsPackage.concat({ 'dest': js.dest, });
-                emitter.fire('change');
+                var self = this;
 
-            });
+                watcher = meta.watcher = new Watcher();
+                watcher.set(meta.file);      //这里只需要添加一次
 
-            LessPackage.watch();
-            LessPackage.on('change', function () {
-                var css = meta.css;
-                css.md5 = LessPackage.concat(css.dest);
-                emitter.fire('change');
-            });
+                watcher.on('changed', function () {
+                    self.reset();
+                    self.parse();       //json 文件发生变化，重新解析。
+                    self.compile();     //根节点发生变化，需要重新编译。
+                    self.watch();
 
+                    emitter.fire('change');
+
+                });
+            }
 
 
         },
@@ -8259,6 +8379,10 @@ define('Package', function (require, module, exports) {
             ['js', 'html', 'css'].forEach(function (type) {
 
                 var item = meta[type];
+                if (!item) {
+                    return;
+                }
+
                 var href = Path.relative(htdocsDir, item.dest);
                 var md5 = item.md5.slice(0, meta.md5);
 
@@ -8808,6 +8932,16 @@ define('Watcher', function (require, module, exports) {
             watcher.add(files);
 
         },
+
+        /**
+        * Unwatch all files and reset the watch instance.
+        */
+        close: function () {
+            var meta = mapper.get(this);
+            var watcher = meta.watcher;
+            watcher.close();
+        },
+
 
         on: function (name, fn) {
             var meta = mapper.get(this);

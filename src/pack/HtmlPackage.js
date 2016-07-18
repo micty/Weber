@@ -285,6 +285,16 @@ define('HtmlPackage', function (require, module, exports) {
             });
         },
 
+        /**
+        * 取消监控。
+        */
+        unwatch: function () {
+            var meta = mapper.get(this);
+            var watcher = meta.watcher;
+            if (watcher) {
+                watcher.close();
+            }
+        },
 
         /**
         * 绑定事件。
@@ -296,7 +306,6 @@ define('HtmlPackage', function (require, module, exports) {
             var args = [].slice.call(arguments, 0);
             emitter.on.apply(emitter, args);
 
-            return this;
         },
 
     };
