@@ -14,6 +14,7 @@ define('JsList', function (require, module, exports) {
     var MD5 = require('MD5');
     var Watcher = require('Watcher');
     var Defaults = require('Defaults');
+    var Log = require('Log');
     var Attribute = require('Attribute');
     var Lines = require('Lines');
     var Url = require('Url');
@@ -136,8 +137,6 @@ define('JsList', function (require, module, exports) {
                 }
                 
                 var lines = Lines.get(html);
-                
-
                 var startIndex = 0;
 
                 patterns = $.Array.map(list, function (item, index) {
@@ -175,14 +174,37 @@ define('JsList', function (require, module, exports) {
                 return;
             }
 
+            //母版页中可能会用到的上下文。
+            var context = {
+                'dir': dir,
+                'master': master,
+                'tags': meta.tags,
+                'htdocsDir': meta.htdocsDir,
+            };
 
-            patterns = new Function('return (' + patterns + ');')();
-            if (!(patterns instanceof Array)) {
+            var fn = new Function('require', 'context',
+                //包装多一层匿名立即执行函数
+                'return (function () { ' +
+                    'var a = ' + patterns + '; \r\n' +
+                    'return a;' +
+                '})();'
+            );
+
+            //执行母版页的 js 代码，并注入变量。
+            patterns = fn(require, context);
+
+            if (!Array.isArray(patterns)) {
                 throw new Error('引入文件的模式必须返回一个数组!');
             }
 
+            patterns = Patterns.fill(dir, patterns);
+            patterns = Patterns.combine(dir, patterns);
+
+            console.log('匹配到'.bgGreen, patterns.length.toString().cyan, '个 js 模式:');
+            Log.logArray(patterns);
+
+            meta.patterns = patterns;
             meta.outer = tags.begin + html + tags.end;
-            meta.patterns = Patterns.combine(dir, patterns);
 
         },
 

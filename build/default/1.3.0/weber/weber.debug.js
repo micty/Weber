@@ -2,7 +2,7 @@
 * weber - web develop tool
 * name: default 
 * version: 1.3.0
-* build: 2016-07-18 16:53:23
+* build: 2016-07-20 11:12:21
 * files: 65(63)
 *    partial/default/begin.js
 *    core/Module.js
@@ -1498,6 +1498,7 @@ define('Patterns', function (require, module, exports) {
     var fs = require('fs');
     var minimatch = require('minimatch');
     var $ = require('$');
+    var $String = require('String');
 
    
     /**
@@ -1610,7 +1611,22 @@ define('Patterns', function (require, module, exports) {
 
     }
 
+    /**
+    * 获取指定模式下的所有文件列表所对应的目录。
+    */
+    function getDirs(dir, patterns) {
+        var Path = require('Path');
 
+        var list = getFiles(dir, patterns);
+
+        list = list.map(function (item) {
+            item = Path.relative(dir, item);
+            item = Path.dirname(item);
+            return item;
+        });
+
+        return list;
+    }
 
 
 
@@ -1686,13 +1702,71 @@ define('Patterns', function (require, module, exports) {
         return list.length > 0;
     }
 
+    /**
+    * 填充模式中的模板。
+    */
+    function fill(dir, patterns) {
+
+        var Path = require('Path');
+
+        var list = patterns.map(function (item) {
+
+            if (item.indexOf('<%=') < 0 || item.indexOf('%>') < 0) {
+                return item;
+            }
+
+
+            var s = $.String.between(item, '<%=', '%>');
+            s = s.trim();
+
+            if (!s) {
+                console.log('模式路径非法:'.bgRed, item.yellow);
+                console.log('<%= %> 中不能为空'.bgRed);
+                throw new Error();
+            }
+
+
+            //提取 <%= 和 %> 之前和之后的两部分。
+            var parts = $String.replaceBetween(item, '<%=', '%>', '<%=%>').split('<%=%>');
+
+
+            if (s.startsWith('dir{') && s.endsWith('}')) {
+                s = $.String.between(s, 'dir{', '}');
+                s = s.trim();
+
+                if (!s) {
+                    console.log('模式路径非法:'.bgRed, item.yellow);
+                    console.log('dir{ } 中不能为空'.bgRed);
+                    throw new Error();
+                }
+
+                var dirs = getDirs(dir, s);
+
+                //拼接前缀和后缀。
+                return dirs.map(function (item) {
+                    return parts[0] + item + parts[1];
+                });
+            }
+
+            return item;
+        });
+
+
+        //降维
+        list = [].concat.apply([], list);
+        return list;
+
+    }
+
 
     return {
         combine: combine,
         getFiles: getFiles,
+        getDirs: getDirs,
         parse: parse,
         match: match,
         matchedIn: matchedIn,
+        fill: fill,
 
     };
 
@@ -2588,6 +2662,7 @@ define('HtmlList', function (require, module, exports) {
     var Patterns = require('Patterns');
     var Path = require('Path');
     var Defaults = require('Defaults');
+    var Log = require('Log');
     var Mapper = $.require('Mapper');
     var Emitter = $.require('Emitter');
     var Url = $.require('Url');
@@ -2672,13 +2747,36 @@ define('HtmlList', function (require, module, exports) {
                 return;
             }
 
-            patterns = new Function('return (' + patterns + ');')();
-            if (!(patterns instanceof Array)) {
+            //母版页中可能会用到的上下文。
+            var context = {
+                'dir': dir,
+                'master': master,
+                'tags': tags,
+            };
+
+            var fn = new Function('require', 'context',
+                //包装多一层匿名立即执行函数
+                'return (function () { ' +
+                    'var a = ' + patterns + '; \r\n' +
+                    'return a;' +
+                '})();'
+            );
+
+            //执行母版页的 js 代码，并注入变量。
+            patterns = fn(require, context);
+
+            if (!Array.isArray(patterns)) {
                 throw new Error('引入文件的模式必须返回一个数组!');
             }
 
+            patterns = Patterns.fill(dir, patterns);
+            patterns = Patterns.combine(dir, patterns);
+
+            console.log('匹配到'.bgGreen, patterns.length.toString().cyan, '个 html 模式:');
+            Log.logArray(patterns);
+
+            meta.patterns = patterns;
             meta.outer = tags.begin + html + tags.end;
-            meta.patterns = Patterns.combine(dir, patterns);
 
         },
 
@@ -2857,6 +2955,7 @@ define('JsList', function (require, module, exports) {
     var MD5 = require('MD5');
     var Watcher = require('Watcher');
     var Defaults = require('Defaults');
+    var Log = require('Log');
     var Attribute = require('Attribute');
     var Lines = require('Lines');
     var Url = require('Url');
@@ -2979,8 +3078,6 @@ define('JsList', function (require, module, exports) {
                 }
                 
                 var lines = Lines.get(html);
-                
-
                 var startIndex = 0;
 
                 patterns = $.Array.map(list, function (item, index) {
@@ -3018,14 +3115,37 @@ define('JsList', function (require, module, exports) {
                 return;
             }
 
+            //母版页中可能会用到的上下文。
+            var context = {
+                'dir': dir,
+                'master': master,
+                'tags': meta.tags,
+                'htdocsDir': meta.htdocsDir,
+            };
 
-            patterns = new Function('return (' + patterns + ');')();
-            if (!(patterns instanceof Array)) {
+            var fn = new Function('require', 'context',
+                //包装多一层匿名立即执行函数
+                'return (function () { ' +
+                    'var a = ' + patterns + '; \r\n' +
+                    'return a;' +
+                '})();'
+            );
+
+            //执行母版页的 js 代码，并注入变量。
+            patterns = fn(require, context);
+
+            if (!Array.isArray(patterns)) {
                 throw new Error('引入文件的模式必须返回一个数组!');
             }
 
+            patterns = Patterns.fill(dir, patterns);
+            patterns = Patterns.combine(dir, patterns);
+
+            console.log('匹配到'.bgGreen, patterns.length.toString().cyan, '个 js 模式:');
+            Log.logArray(patterns);
+
+            meta.patterns = patterns;
             meta.outer = tags.begin + html + tags.end;
-            meta.patterns = Patterns.combine(dir, patterns);
 
         },
 
@@ -4536,6 +4656,7 @@ define('LessList', function (require, module, exports) {
     var Path = require('Path');
     var Patterns = require('Patterns');
     var Defaults = require('Defaults');
+    var Log = require('Log');
 
     var Mapper = $.require('Mapper');
     var Emitter = $.require('Emitter');
@@ -4644,16 +4765,40 @@ define('LessList', function (require, module, exports) {
                 return;
             }
 
-            patterns = new Function('return (' + patterns + ');')();
+            var dir = meta.dir;
 
-          
+            //母版页中可能会用到的上下文。
+            var context = {
+                'dir': dir,
+                'master': master,
+                'tags': meta.tags,
+                'htdocsDir': meta.htdocsDir,
+                'cssDir': meta.cssDir,
+            };
+
+            var fn = new Function('require', 'context',
+                //包装多一层匿名立即执行函数
+                'return (function () { ' +
+                    'var a = ' + patterns + '; \r\n' +
+                    'return a;' +
+                '})();'
+            );
+
+            //执行母版页的 js 代码，并注入变量。
+            patterns = fn(require, context);
+
             if (!Array.isArray(patterns)) {
                 throw new Error('引入文件的模式必须返回一个数组!');
             }
 
-            meta.outer = tags.begin + html + tags.end;
-            meta.patterns = Patterns.combine(meta.dir, patterns);
+            patterns = Patterns.fill(dir, patterns);
+            patterns = Patterns.combine(dir, patterns);
 
+            console.log('匹配到'.bgGreen, patterns.length.toString().cyan, '个 less 模式:');
+            Log.logArray(patterns);
+
+            meta.patterns = patterns;
+            meta.outer = tags.begin + html + tags.end;
 
         },
 

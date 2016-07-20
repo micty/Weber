@@ -8,6 +8,7 @@ define('Patterns', function (require, module, exports) {
     var fs = require('fs');
     var minimatch = require('minimatch');
     var $ = require('$');
+    var $String = require('String');
 
    
     /**
@@ -120,7 +121,22 @@ define('Patterns', function (require, module, exports) {
 
     }
 
+    /**
+    * 获取指定模式下的所有文件列表所对应的目录。
+    */
+    function getDirs(dir, patterns) {
+        var Path = require('Path');
 
+        var list = getFiles(dir, patterns);
+
+        list = list.map(function (item) {
+            item = Path.relative(dir, item);
+            item = Path.dirname(item);
+            return item;
+        });
+
+        return list;
+    }
 
 
 
@@ -196,13 +212,71 @@ define('Patterns', function (require, module, exports) {
         return list.length > 0;
     }
 
+    /**
+    * 填充模式中的模板。
+    */
+    function fill(dir, patterns) {
+
+        var Path = require('Path');
+
+        var list = patterns.map(function (item) {
+
+            if (item.indexOf('<%=') < 0 || item.indexOf('%>') < 0) {
+                return item;
+            }
+
+
+            var s = $.String.between(item, '<%=', '%>');
+            s = s.trim();
+
+            if (!s) {
+                console.log('模式路径非法:'.bgRed, item.yellow);
+                console.log('<%= %> 中不能为空'.bgRed);
+                throw new Error();
+            }
+
+
+            //提取 <%= 和 %> 之前和之后的两部分。
+            var parts = $String.replaceBetween(item, '<%=', '%>', '<%=%>').split('<%=%>');
+
+
+            if (s.startsWith('dir{') && s.endsWith('}')) {
+                s = $.String.between(s, 'dir{', '}');
+                s = s.trim();
+
+                if (!s) {
+                    console.log('模式路径非法:'.bgRed, item.yellow);
+                    console.log('dir{ } 中不能为空'.bgRed);
+                    throw new Error();
+                }
+
+                var dirs = getDirs(dir, s);
+
+                //拼接前缀和后缀。
+                return dirs.map(function (item) {
+                    return parts[0] + item + parts[1];
+                });
+            }
+
+            return item;
+        });
+
+
+        //降维
+        list = [].concat.apply([], list);
+        return list;
+
+    }
+
 
     return {
         combine: combine,
         getFiles: getFiles,
+        getDirs: getDirs,
         parse: parse,
         match: match,
         matchedIn: matchedIn,
+        fill: fill,
 
     };
 

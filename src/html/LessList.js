@@ -14,6 +14,7 @@ define('LessList', function (require, module, exports) {
     var Path = require('Path');
     var Patterns = require('Patterns');
     var Defaults = require('Defaults');
+    var Log = require('Log');
 
     var Mapper = $.require('Mapper');
     var Emitter = $.require('Emitter');
@@ -122,16 +123,40 @@ define('LessList', function (require, module, exports) {
                 return;
             }
 
-            patterns = new Function('return (' + patterns + ');')();
+            var dir = meta.dir;
 
-          
+            //母版页中可能会用到的上下文。
+            var context = {
+                'dir': dir,
+                'master': master,
+                'tags': meta.tags,
+                'htdocsDir': meta.htdocsDir,
+                'cssDir': meta.cssDir,
+            };
+
+            var fn = new Function('require', 'context',
+                //包装多一层匿名立即执行函数
+                'return (function () { ' +
+                    'var a = ' + patterns + '; \r\n' +
+                    'return a;' +
+                '})();'
+            );
+
+            //执行母版页的 js 代码，并注入变量。
+            patterns = fn(require, context);
+
             if (!Array.isArray(patterns)) {
                 throw new Error('引入文件的模式必须返回一个数组!');
             }
 
-            meta.outer = tags.begin + html + tags.end;
-            meta.patterns = Patterns.combine(meta.dir, patterns);
+            patterns = Patterns.fill(dir, patterns);
+            patterns = Patterns.combine(dir, patterns);
 
+            console.log('匹配到'.bgGreen, patterns.length.toString().cyan, '个 less 模式:');
+            Log.logArray(patterns);
+
+            meta.patterns = patterns;
+            meta.outer = tags.begin + html + tags.end;
 
         },
 
