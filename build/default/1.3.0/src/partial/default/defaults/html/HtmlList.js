@@ -12,6 +12,7 @@ define('HtmlList.defaults', /**@lends HtmlList.defaults*/ {
         end: '<!--grunt.html.end-->',
     },
 
+    extraPatterns: [],      //额外附加的模式。
 
 });
 

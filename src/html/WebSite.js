@@ -79,7 +79,8 @@ define('WebSite', function (require, module, exports) {
             Directory.delete(buildDir + packageDir);
 
             var processMasters = Masters.build(meta, options.masters);
-            var processPackages = Packages.build(meta, options.packages);
+            var processPackages = meta.packages ? Packages.build(meta, options.packages) : null;
+
 
             //并行处理任务。
             Tasks.parallel({
@@ -89,7 +90,12 @@ define('WebSite', function (require, module, exports) {
                 ],  
 
                 each: function (task, index, done) {
-                    task(done);
+                    if (task) {
+                        task(done);
+                    }
+                    else {
+                        done();
+                    }
                 },
 
                 all: function () {
@@ -130,7 +136,7 @@ define('WebSite', function (require, module, exports) {
             Directory.create(meta.htdocsDir + meta.packageDir);
 
             var processMasters = Masters.watch(meta);
-            var processPackages = Packages.watch(meta);
+            var processPackages = meta.packages ? Packages.watch(meta) : null;
 
             //并行处理任务。
             Tasks.parallel({
@@ -140,7 +146,12 @@ define('WebSite', function (require, module, exports) {
                 ],
 
                 each: function (task, index, done) {
-                    task(done);
+                    if (task) {
+                        task(done);
+                    }
+                    else {
+                        done();
+                    }
                 },
 
                 all: function () {

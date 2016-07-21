@@ -38,15 +38,16 @@ define('LessList', function (require, module, exports) {
             'master': '',       //母版页的内容，在 parse() 中用到。
             'html': '',         //模式所生成的 html 块。
             'outer': '',        //包括开始标记和结束标记在内的原始的整一块 html。
-            'patterns': [],     //模式列表。
+            'patterns': [],     //全部模式列表。
             'list': [],         //真实 less 文件列表。
             'less$item': {},    //less 文件所对应的信息
 
             'emitter': new Emitter(this),
             'watcher': null,    //监控器，首次用到时再创建
 
-            'md5': config.md5,          //填充模板所使用的 md5 的长度
-            'sample': config.sample,    //使用的模板
+            'extraPatterns': config.extraPatterns,  //额外附加的模式。
+            'md5': config.md5,                      //填充模板所使用的 md5 的长度
+            'sample': config.sample,                //使用的模板
             'tags': config.tags,
             'htdocsDir': config.htdocsDir,
             'cssDir': config.cssDir,
@@ -149,6 +150,7 @@ define('LessList', function (require, module, exports) {
                 throw new Error('引入文件的模式必须返回一个数组!');
             }
 
+            patterns = patterns.concat(meta.extraPatterns); //跟配置中的模式合并
             patterns = Patterns.fill(dir, patterns);
             patterns = Patterns.combine(dir, patterns);
 

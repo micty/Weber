@@ -15,6 +15,8 @@ define('JsList.defaults', /**@lends JsList.defaults*/ {
         end: '<!--grunt.js.end-->',
     },
 
+    extraPatterns: [],      //额外附加的模式。
+
     max: {
         x: 110,     //每行最大的长度。
         y: 250,     //最多的行数。

@@ -2,7 +2,7 @@
 * weber - web develop tool
 * name: default 
 * version: 1.3.0
-* build: 2016-07-20 11:12:21
+* build: 2016-07-21 11:16:52
 * files: 65(63)
 *    partial/default/begin.js
 *    core/Module.js
@@ -2693,6 +2693,7 @@ define('HtmlList', function (require, module, exports) {
             'emitter': new Emitter(this),
             'watcher': null,    //监控器，首次用到时再创建
 
+            'extraPatterns': config.extraPatterns,  //额外附加的模式。
             'sample': config.sample, //使用的模板
             'tags': config.tags,
 
@@ -2769,6 +2770,7 @@ define('HtmlList', function (require, module, exports) {
                 throw new Error('引入文件的模式必须返回一个数组!');
             }
 
+            patterns = patterns.concat(meta.extraPatterns); //跟配置中的模式合并
             patterns = Patterns.fill(dir, patterns);
             patterns = Patterns.combine(dir, patterns);
 
@@ -2990,10 +2992,11 @@ define('JsList', function (require, module, exports) {
             'file$md5': {}, 
 
 
-            'scriptType': $.String.random(64),  //用于 script 的 type 值。 在页面压缩 js 时防止重复压缩。
+            'scriptType': $.String.random(64),      //用于 script 的 type 值。 在页面压缩 js 时防止重复压缩。
             'emitter': new Emitter(this),
-            'watcher': null,                    //监控器，首次用到时再创建。
+            'watcher': null,                        //监控器，首次用到时再创建。
 
+            'extraPatterns': config.extraPatterns,  //额外附加的模式。
             'regexp': config.regexp,
             'md5': config.md5,
             'sample': config.sample,
@@ -3138,6 +3141,7 @@ define('JsList', function (require, module, exports) {
                 throw new Error('引入文件的模式必须返回一个数组!');
             }
 
+            patterns = patterns.concat(meta.extraPatterns); //跟配置中的模式合并
             patterns = Patterns.fill(dir, patterns);
             patterns = Patterns.combine(dir, patterns);
 
@@ -4680,15 +4684,16 @@ define('LessList', function (require, module, exports) {
             'master': '',       //母版页的内容，在 parse() 中用到。
             'html': '',         //模式所生成的 html 块。
             'outer': '',        //包括开始标记和结束标记在内的原始的整一块 html。
-            'patterns': [],     //模式列表。
+            'patterns': [],     //全部模式列表。
             'list': [],         //真实 less 文件列表。
             'less$item': {},    //less 文件所对应的信息
 
             'emitter': new Emitter(this),
             'watcher': null,    //监控器，首次用到时再创建
 
-            'md5': config.md5,          //填充模板所使用的 md5 的长度
-            'sample': config.sample,    //使用的模板
+            'extraPatterns': config.extraPatterns,  //额外附加的模式。
+            'md5': config.md5,                      //填充模板所使用的 md5 的长度
+            'sample': config.sample,                //使用的模板
             'tags': config.tags,
             'htdocsDir': config.htdocsDir,
             'cssDir': config.cssDir,
@@ -4791,6 +4796,7 @@ define('LessList', function (require, module, exports) {
                 throw new Error('引入文件的模式必须返回一个数组!');
             }
 
+            patterns = patterns.concat(meta.extraPatterns); //跟配置中的模式合并
             patterns = Patterns.fill(dir, patterns);
             patterns = Patterns.combine(dir, patterns);
 
@@ -6377,7 +6383,8 @@ define('WebSite', function (require, module, exports) {
             Directory.delete(buildDir + packageDir);
 
             var processMasters = Masters.build(meta, options.masters);
-            var processPackages = Packages.build(meta, options.packages);
+            var processPackages = meta.packages ? Packages.build(meta, options.packages) : null;
+
 
             //并行处理任务。
             Tasks.parallel({
@@ -6387,7 +6394,12 @@ define('WebSite', function (require, module, exports) {
                 ],  
 
                 each: function (task, index, done) {
-                    task(done);
+                    if (task) {
+                        task(done);
+                    }
+                    else {
+                        done();
+                    }
                 },
 
                 all: function () {
@@ -6428,7 +6440,7 @@ define('WebSite', function (require, module, exports) {
             Directory.create(meta.htdocsDir + meta.packageDir);
 
             var processMasters = Masters.watch(meta);
-            var processPackages = Packages.watch(meta);
+            var processPackages = meta.packages ? Packages.watch(meta) : null;
 
             //并行处理任务。
             Tasks.parallel({
@@ -6438,7 +6450,12 @@ define('WebSite', function (require, module, exports) {
                 ],
 
                 each: function (task, index, done) {
-                    task(done);
+                    if (task) {
+                        task(done);
+                    }
+                    else {
+                        done();
+                    }
                 },
 
                 all: function () {
@@ -6729,7 +6746,7 @@ define('WebSite/Masters', function (require, module, exports) {
                             master.clean();
                         });
 
-                        done(); //完成当前任务。
+                        done && done(); //完成当前任务。
                     },
 
                 });
@@ -6778,7 +6795,7 @@ define('WebSite/Masters', function (require, module, exports) {
                     },
 
                     all: function () {  //已全部完成
-                        done();
+                        done && done();
                     },
                 });
             };
@@ -6900,7 +6917,7 @@ define('WebSite/Packages', function (require, module, exports) {
                             var dest = Path.join(buildDir, packageFile);
                             Package.write(dest, pkgs, opt.minify);      //写入到总包
 
-                            done(); //完成当前任务。
+                            done && done();
                         }
                         
                     },
@@ -6977,7 +6994,7 @@ define('WebSite/Packages', function (require, module, exports) {
 
                     all: function (pkgs) {  //已全部完成
                         write(pkgs);
-                        done();
+                        done && done();
                     },
                     
                 });
@@ -6987,9 +7004,12 @@ define('WebSite/Packages', function (require, module, exports) {
 
         },
 
+
+        /**
+        *
+        */
+
     };
-
-
 
 });
 
@@ -9227,6 +9247,7 @@ define('HtmlList.defaults', /**@lends HtmlList.defaults*/ {
         end: '<!--grunt.html.end-->',
     },
 
+    extraPatterns: [],      //额外附加的模式。
 
 });
 
@@ -9247,6 +9268,8 @@ define('JsList.defaults', /**@lends JsList.defaults*/ {
         begin: '<!--grunt.js.begin-->',
         end: '<!--grunt.js.end-->',
     },
+
+    extraPatterns: [],      //额外附加的模式。
 
     max: {
         x: 110,     //每行最大的长度。
@@ -9351,6 +9374,8 @@ define('LessList.defaults', /**@lends LessList.defaults*/ {
         begin: '<!--grunt.css.begin-->',
         end: '<!--grunt.css.end-->',
     },
+
+    extraPatterns: [],      //额外附加的模式。
 
     concat: {
         'write': true,      //写入合并后的 css 文件。

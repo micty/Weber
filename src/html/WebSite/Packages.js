@@ -99,7 +99,7 @@ define('WebSite/Packages', function (require, module, exports) {
                             var dest = Path.join(buildDir, packageFile);
                             Package.write(dest, pkgs, opt.minify);      //写入到总包
 
-                            done(); //完成当前任务。
+                            done && done();
                         }
                         
                     },
@@ -176,7 +176,7 @@ define('WebSite/Packages', function (require, module, exports) {
 
                     all: function (pkgs) {  //已全部完成
                         write(pkgs);
-                        done();
+                        done && done();
                     },
                     
                 });
@@ -186,9 +186,12 @@ define('WebSite/Packages', function (require, module, exports) {
 
         },
 
+
+        /**
+        *
+        */
+
     };
-
-
 
 });
 

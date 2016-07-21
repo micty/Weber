@@ -17,6 +17,8 @@ define('LessList.defaults', /**@lends LessList.defaults*/ {
         end: '<!--grunt.css.end-->',
     },
 
+    extraPatterns: [],      //额外附加的模式。
+
     concat: {
         'write': true,      //写入合并后的 css 文件。
         'delete': true,     //删除合并前的源分 css 文件

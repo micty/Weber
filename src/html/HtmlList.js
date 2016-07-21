@@ -42,6 +42,7 @@ define('HtmlList', function (require, module, exports) {
             'emitter': new Emitter(this),
             'watcher': null,    //监控器，首次用到时再创建
 
+            'extraPatterns': config.extraPatterns,  //额外附加的模式。
             'sample': config.sample, //使用的模板
             'tags': config.tags,
 
@@ -118,6 +119,7 @@ define('HtmlList', function (require, module, exports) {
                 throw new Error('引入文件的模式必须返回一个数组!');
             }
 
+            patterns = patterns.concat(meta.extraPatterns); //跟配置中的模式合并
             patterns = Patterns.fill(dir, patterns);
             patterns = Patterns.combine(dir, patterns);
 

@@ -158,7 +158,7 @@ define('WebSite/Masters', function (require, module, exports) {
                             master.clean();
                         });
 
-                        done(); //完成当前任务。
+                        done && done(); //完成当前任务。
                     },
 
                 });
@@ -207,7 +207,7 @@ define('WebSite/Masters', function (require, module, exports) {
                     },
 
                     all: function () {  //已全部完成
-                        done();
+                        done && done();
                     },
                 });
             };

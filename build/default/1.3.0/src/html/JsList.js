@@ -49,10 +49,11 @@ define('JsList', function (require, module, exports) {
             'file$md5': {}, 
 
 
-            'scriptType': $.String.random(64),  //用于 script 的 type 值。 在页面压缩 js 时防止重复压缩。
+            'scriptType': $.String.random(64),      //用于 script 的 type 值。 在页面压缩 js 时防止重复压缩。
             'emitter': new Emitter(this),
-            'watcher': null,                    //监控器，首次用到时再创建。
+            'watcher': null,                        //监控器，首次用到时再创建。
 
+            'extraPatterns': config.extraPatterns,  //额外附加的模式。
             'regexp': config.regexp,
             'md5': config.md5,
             'sample': config.sample,
@@ -197,6 +198,7 @@ define('JsList', function (require, module, exports) {
                 throw new Error('引入文件的模式必须返回一个数组!');
             }
 
+            patterns = patterns.concat(meta.extraPatterns); //跟配置中的模式合并
             patterns = Patterns.fill(dir, patterns);
             patterns = Patterns.combine(dir, patterns);
 
