@@ -2,7 +2,7 @@
 * weber - web develop tool
 * name: default 
 * version: 1.3.0
-* build: 2016-07-21 11:16:52
+* build: 2016-07-21 16:40:20
 * files: 65(63)
 *    partial/default/begin.js
 *    core/Module.js
@@ -3087,8 +3087,8 @@ define('JsList', function (require, module, exports) {
 
                     var src = Attribute.get(item, 'src');
                     if (!src) {
-                        console.log(item.red);
-                        throw new Error('JsList 块里的 script 标签必须含有 src 属性');
+                        console.log('JsList 块里的 script 标签必须含有 src 属性:'.bgRed, item);
+                        throw new Error();
                     }
 
                     var index = Lines.getIndex(lines, item, startIndex);
@@ -3102,8 +3102,8 @@ define('JsList', function (require, module, exports) {
                     startIndex = index + 1; //下次搜索的起始行号
                     
                     if (Url.checkFull(src)) { //是绝对(外部)地址
-                        console.log(item.red);
-                        throw new Error('JsList 块里的 script 标签 src 属性不能引用外部地址');
+                        console.log('JsList 块里的 script 标签 src 属性不能引用外部地址:'.bgRed, item);
+                        throw new Error();
                     }
 
                     src = Path.format(src);
@@ -6376,7 +6376,8 @@ define('WebSite', function (require, module, exports) {
             Directory.delete(buildDir);
 
             console.log('复制目录'.bgMagenta, htdocsDir.green, '→', buildDir.cyan);
-            Directory.copy(htdocsDir, buildDir);
+            Directory.copy
+                (htdocsDir, buildDir);
           
             //先删除自动生成的目录，后续会再生成回来。
             Directory.delete(buildDir + cssDir);
@@ -6435,9 +6436,15 @@ define('WebSite', function (require, module, exports) {
         watch: function (done) {
 
             var meta = mapper.get(this);
+            var packageDir = meta.htdocsDir + meta.packageDir;
+
+            console.log(packageDir);
+
+            //先清空，避免使用者意外用到。
+            Directory.delete(packageDir);
             
             //这里要先创建 package 目录，否则 watcher 会出错，暂未找到根本原因。
-            Directory.create(meta.htdocsDir + meta.packageDir);
+            Directory.create(packageDir);
 
             var processMasters = Masters.watch(meta);
             var processPackages = meta.packages ? Packages.watch(meta) : null;
@@ -9274,6 +9281,7 @@ define('JsList.defaults', /**@lends JsList.defaults*/ {
     max: {
         x: 110,     //每行最大的长度。
         y: 250,     //最多的行数。
+        excludes: null,
     },
 
     //用来提取出静态 script 标签的正则表达式。

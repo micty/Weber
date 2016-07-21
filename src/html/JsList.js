@@ -144,8 +144,8 @@ define('JsList', function (require, module, exports) {
 
                     var src = Attribute.get(item, 'src');
                     if (!src) {
-                        console.log(item.red);
-                        throw new Error('JsList 块里的 script 标签必须含有 src 属性');
+                        console.log('JsList 块里的 script 标签必须含有 src 属性:'.bgRed, item);
+                        throw new Error();
                     }
 
                     var index = Lines.getIndex(lines, item, startIndex);
@@ -159,8 +159,8 @@ define('JsList', function (require, module, exports) {
                     startIndex = index + 1; //下次搜索的起始行号
                     
                     if (Url.checkFull(src)) { //是绝对(外部)地址
-                        console.log(item.red);
-                        throw new Error('JsList 块里的 script 标签 src 属性不能引用外部地址');
+                        console.log('JsList 块里的 script 标签 src 属性不能引用外部地址:'.bgRed, item);
+                        throw new Error();
                     }
 
                     src = Path.format(src);

@@ -20,6 +20,7 @@ define('JsList.defaults', /**@lends JsList.defaults*/ {
     max: {
         x: 110,     //每行最大的长度。
         y: 250,     //最多的行数。
+        excludes: null,
     },
 
     //用来提取出静态 script 标签的正则表达式。

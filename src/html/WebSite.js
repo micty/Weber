@@ -72,7 +72,8 @@ define('WebSite', function (require, module, exports) {
             Directory.delete(buildDir);
 
             console.log('复制目录'.bgMagenta, htdocsDir.green, '→', buildDir.cyan);
-            Directory.copy(htdocsDir, buildDir);
+            Directory.copy
+                (htdocsDir, buildDir);
           
             //先删除自动生成的目录，后续会再生成回来。
             Directory.delete(buildDir + cssDir);
@@ -131,9 +132,15 @@ define('WebSite', function (require, module, exports) {
         watch: function (done) {
 
             var meta = mapper.get(this);
+            var packageDir = meta.htdocsDir + meta.packageDir;
+
+            console.log(packageDir);
+
+            //先清空，避免使用者意外用到。
+            Directory.delete(packageDir);
             
             //这里要先创建 package 目录，否则 watcher 会出错，暂未找到根本原因。
-            Directory.create(meta.htdocsDir + meta.packageDir);
+            Directory.create(packageDir);
 
             var processMasters = Masters.watch(meta);
             var processPackages = meta.packages ? Packages.watch(meta) : null;
