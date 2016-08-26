@@ -134,8 +134,6 @@ define('WebSite', function (require, module, exports) {
             var meta = mapper.get(this);
             var packageDir = meta.htdocsDir + meta.packageDir;
 
-            console.log(packageDir);
-
             //先清空，避免使用者意外用到。
             Directory.delete(packageDir);
             

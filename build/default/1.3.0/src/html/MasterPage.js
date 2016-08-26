@@ -60,7 +60,10 @@ define('MasterPage', function (require, module, exports) {
             'minifyHtml': config.minifyHtml,
 
             //子模块实例
-            'HtmlList': new HtmlList(dir),
+            'HtmlList': new HtmlList(dir, {
+                'htdocsDir': htdocsDir,
+            }),
+
             'HtmlLinks': new HtmlLinks(dir, {
                 'base': config.base || name,    //二级目录
             }),

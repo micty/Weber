@@ -9,6 +9,7 @@ define('Watcher', function (require, module, exports) {
     var Path = require('Path');
     var Defaults = require('Defaults');
     var MD5 = require('MD5');
+    var Directory = require('Directory');
 
     var $ = require('$');
     
@@ -63,6 +64,11 @@ define('Watcher', function (require, module, exports) {
 
                     //没有绑定该类型的事件。
                     if (!events[event]) {
+                        return;
+                    }
+
+                    //是一个目录。
+                    if (Directory.check(file)) {
                         return;
                     }
 
