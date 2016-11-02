@@ -140,6 +140,13 @@ define('Path', function (require, module, exports) {
         linearize: linearize,
         join: join,
         relative: relative,
+
+
+        resolve: function (file) {
+            file = path.resolve(file);
+            file = file.replace(/\\/g, '/');
+            return file;
+        },
     };
 
 });

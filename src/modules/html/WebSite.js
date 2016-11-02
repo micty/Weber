@@ -5,28 +5,22 @@
 define('WebSite', function (require, module, exports) {
 
     var $ = require('$');
-    var Path = require('Path');
     var File = require('File');
     var Directory = require('Directory');
     var Patterns = require('Patterns');
-    
     var FileRefs = require('FileRefs');
-    var MasterPage = require('MasterPage');
     var Defaults = require('Defaults');
     var Tasks = require('Tasks');
 
     var Watcher = require('Watcher');
-
-    var Mapper = $.require('Mapper');
-    var Emitter = $.require('Emitter');
-
     var Log = require('Log');
-    var Url = module.require('Url');
+    var Mapper = $.require('Mapper');
 
     var mapper = new Mapper();
 
     var Masters = module.require('Masters');
     var Packages = module.require('Packages');
+    var Url = module.require('Url');
 
     
     function WebSite(config) {
@@ -53,9 +47,7 @@ define('WebSite', function (require, module, exports) {
 
 
     WebSite.prototype = {
-
         constructor: WebSite,
-
 
         /**
         * 构建整个站点。
@@ -72,8 +64,7 @@ define('WebSite', function (require, module, exports) {
             Directory.delete(buildDir);
 
             console.log('复制目录'.bgMagenta, htdocsDir.green, '→', buildDir.cyan);
-            Directory.copy
-                (htdocsDir, buildDir);
+            Directory.copy(htdocsDir, buildDir);
           
             //先删除自动生成的目录，后续会再生成回来。
             Directory.delete(buildDir + cssDir);
@@ -120,17 +111,12 @@ define('WebSite', function (require, module, exports) {
                 },
 
             });
-
         },
-
-
-
 
         /**
         * 编译整个站点，完成后开启监控。
         */
         watch: function (done) {
-
             var meta = mapper.get(this);
             var packageDir = meta.htdocsDir + meta.packageDir;
 
@@ -168,72 +154,10 @@ define('WebSite', function (require, module, exports) {
             });
         },
 
-
-
-        /**
-        * 统计整个站点信息。
-        */
-        stat: function () {
-            var meta = mapper.get(this);
-            var htdocsDir = meta.htdocsDir;
-
-
-            var all = {};
-            var file$md5 = {};
-            var md5$files = {};
-
-            var MD5 = require('MD5');
-            var Patterns = require('Patterns');
-
-            var files = Directory.getFiles(htdocsDir);
-
-            files.forEach(function (file) {
-                
-                var md5 = MD5.read(file);
-                file$md5[file] = md5;
-
-                var files = md5$files[md5];
-                if (!files) {
-                    files = md5$files[md5] = [];
-                }
-
-                files.push(file);
-            });
-
-    
-            File.writeJSON('file$md5.json', file$md5);
-            File.writeJSON('md5$files.json', md5$files);
-
-
-
-
-            return;
-            
-
-            var patterns = Patterns.combine(htdocsDir, ['**/*.js']);
-            var jsFiles = Patterns.match(patterns, files);
-
-            //console.log(jsFiles);
-
-
-            var patterns = Patterns.combine(htdocsDir, ['**/*.less']);
-            var lessFiles = Patterns.match(patterns, files);
-            console.log(lessFiles);
-
-
-            var patterns = Patterns.combine(htdocsDir, ['**/*.master.html']);
-            var masterFiles = Patterns.match(patterns, files);
-            console.log(masterFiles);
-
-
-        },
-
         /**
         * 打开站点页面。
-        * @param
         */
         open: function (options) {
-   
             var meta = mapper.get(this);
 
             options = $.Object.extend({}, options, {
@@ -245,11 +169,11 @@ define('WebSite', function (require, module, exports) {
             Url.open(options);
         },
 
-
+        /**
+        * 打开站点对应的二维码页面以获取二维码。
+        */
         openQR: function (options) {
-
             options = options || {};
-
 
             var meta = mapper.get(this);
 
@@ -273,6 +197,11 @@ define('WebSite', function (require, module, exports) {
             console.log('打开二维码'.bgGreen, url.cyan);
 
             Url.open(options);
+        },
+
+
+        destroy: function () {
+            mapper.remove(this);
         },
 
     };

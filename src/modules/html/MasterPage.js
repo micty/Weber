@@ -18,6 +18,7 @@ define('MasterPage', function (require, module, exports) {
     var Path = require('Path');
     var Defaults = require('Defaults');
     var Watcher = require('Watcher');
+
     var HtmlList = require('HtmlList');
     var HtmlLinks = require('HtmlLinks');
     var CssLinks = require('CssLinks');
@@ -604,7 +605,6 @@ define('MasterPage', function (require, module, exports) {
 
 
     return MasterPage;
-
 
 });
 
