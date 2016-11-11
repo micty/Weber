@@ -4,7 +4,7 @@
 */
 define('HtmlLinks.defaults', /**@lends HtmlLinks.defaults*/ {
 
-    regexp: /<link\s+.*rel\s*=\s*["\']grunt["\'].*\/>/ig,
+    regexp: /<link\s+.*rel\s*=\s*["\']html["\'].*\/>/ig,
 
 });
 

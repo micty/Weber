@@ -11,8 +11,8 @@ define('JsList.defaults', /**@lends JsList.defaults*/ {
 
 
     tags: {
-        begin: '<!--grunt.js.begin-->',
-        end: '<!--grunt.js.end-->',
+        begin: '<!--weber.js.begin-->',
+        end: '<!--weber.js.end-->',
     },
 
     extraPatterns: [],      //额外附加的模式。

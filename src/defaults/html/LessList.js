@@ -13,8 +13,8 @@ define('LessList.defaults', /**@lends LessList.defaults*/ {
 
 
     tags: {
-        begin: '<!--grunt.css.begin-->',
-        end: '<!--grunt.css.end-->',
+        begin: '<!--weber.css.begin-->',
+        end: '<!--weber.css.end-->',
     },
 
     extraPatterns: [],      //额外附加的模式。

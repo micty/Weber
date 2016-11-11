@@ -5,11 +5,11 @@
 define('HtmlList.defaults', /**@lends HtmlList.defaults*/ {
     
   
-    sample: '<link rel="grunt" href="{href}" />', //使用的模板
+    sample: '<link rel="html" href="{href}" />', //使用的模板
 
     tags: {
-        begin: '<!--grunt.html.begin-->',
-        end: '<!--grunt.html.end-->',
+        begin: '<!--weber.html.begin-->',
+        end: '<!--weber.html.end-->',
     },
 
     extraPatterns: [],      //额外附加的模式。
