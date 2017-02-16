@@ -17,19 +17,16 @@ define('JsScripts', function (require, module, exports) {
     var Url = require('Url');
     var Attribute = require('Attribute');
 
-    var Mapper = $.require('Mapper');
     var Emitter = $.require('Emitter');
     var $Url = $.require('Url');
 
-    var mapper = new Mapper();
+    var mapper = new Map();
 
 
 
     function JsScripts(dir, config) {
 
  
-        Mapper.setGuid(this);
-
         config = Defaults.clone(module.id, config);
 
         var meta = {
@@ -283,9 +280,7 @@ define('JsScripts', function (require, module, exports) {
             });
 
 
-
-            //watcher.set(files);
-
+            watcher.set(files);
 
         },
 

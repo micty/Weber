@@ -15,11 +15,10 @@ define('HtmlLinks', function (require, module, exports) {
     var Lines = require('Lines');
     var Attribute = require('Attribute');
 
-    var Mapper = $.require('Mapper');
     var Emitter = $.require('Emitter');
     var Url = $.require('Url');
 
-    var mapper = new Mapper();
+    var mapper = new Map();
 
 
 
@@ -27,7 +26,6 @@ define('HtmlLinks', function (require, module, exports) {
     function HtmlLinks(dir, config) {
 
 
-        Mapper.setGuid(this);
         config = Defaults.clone(module.id, config);
 
 

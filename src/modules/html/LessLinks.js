@@ -17,17 +17,14 @@ define('LessLinks', function (require, module, exports) {
     var Url = require('Url');
     var Attribute = require('Attribute');
 
-    var Mapper = $.require('Mapper');
     var Emitter = $.require('Emitter');
-    var $Url = $.require('Url');
 
-    var mapper = new Mapper();
+    var mapper = new Map();
 
 
 
     function LessLinks(dir, config) {
 
-        Mapper.setGuid(this);
 
         config = Defaults.clone(module.id, config);
 

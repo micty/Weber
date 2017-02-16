@@ -16,12 +16,11 @@ define('LessList', function (require, module, exports) {
     var Defaults = require('Defaults');
     var Log = require('Log');
 
-    var Mapper = $.require('Mapper');
     var Emitter = $.require('Emitter');
     var Url = $.require('Url');
    
 
-    var mapper = new Mapper();
+    var mapper = new Map();
 
 
 
@@ -29,7 +28,6 @@ define('LessList', function (require, module, exports) {
     function LessList(dir, config) {
 
 
-        Mapper.setGuid(this);
         config = Defaults.clone(module.id, config);
 
 

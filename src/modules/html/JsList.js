@@ -19,12 +19,11 @@ define('JsList', function (require, module, exports) {
     var Lines = require('Lines');
     var Url = require('Url');
 
-    var Mapper = $.require('Mapper');
     var Emitter = $.require('Emitter');
     
 
 
-    var mapper = new Mapper();
+    var mapper = new Map();
 
 
 
@@ -32,7 +31,6 @@ define('JsList', function (require, module, exports) {
     function JsList(dir, config) {
 
 
-        Mapper.setGuid(this);
         config = Defaults.clone(module.id, config);
 
         var rid = $.String.random(4); //随机 id

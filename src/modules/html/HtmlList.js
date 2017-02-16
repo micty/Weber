@@ -12,20 +12,17 @@ define('HtmlList', function (require, module, exports) {
     var Path = require('Path');
     var Defaults = require('Defaults');
     var Log = require('Log');
-    var Mapper = $.require('Mapper');
     var Emitter = $.require('Emitter');
     var Url = $.require('Url');
    
 
-    var mapper = new Mapper();
+    var mapper = new Map();
 
 
     //该模块不需要进行资源文件引用计数，交给 HtmlLinks 计数即可。
 
     function HtmlList(dir, config) {
 
- 
-        Mapper.setGuid(this);
         config = Defaults.clone(module.id, config);
 
         var rid = $.String.random(4); //随机 id

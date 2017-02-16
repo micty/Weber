@@ -13,12 +13,11 @@ define('JsPackage', function (require, module, exports) {
     var Defaults = require('Defaults');
     var MD5 = require('MD5');
 
-    var Mapper = $.require('Mapper');
     var Emitter = $.require('Emitter');
     
 
 
-    var mapper = new Mapper();
+    var mapper = new Map();
 
 
 
@@ -26,7 +25,6 @@ define('JsPackage', function (require, module, exports) {
     function JsPackage(dir, config) {
 
 
-        Mapper.setGuid(this);
         config = Defaults.clone(module.id, config);
 
         var meta = {

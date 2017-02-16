@@ -6,16 +6,13 @@
 define('Config', function (require, module,  exports) {
 
     var $ = require('$');
-    var Mapper = $.require('Mapper');
-    var mapper = new Mapper();
+    var mapper = new Map();
 
 
     /**
     * 构造器。
     */
     function Config() {
-
-        Mapper.setGuid(this);
 
         var meta = {
             'name$config': {},

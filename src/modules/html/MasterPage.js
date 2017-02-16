@@ -5,11 +5,8 @@
 define('MasterPage', function (require, module, exports) {
 
     var path = require('path');
-
     var $ = require('$');
-    var Mapper = $.require('Mapper');
     var Emitter = $.require('Emitter');
-    var mapper = new Mapper();
 
     var MD5 = require('MD5');
     var File = require('File');
@@ -28,11 +25,11 @@ define('MasterPage', function (require, module, exports) {
     var JsScripts = require('JsScripts');
     var Verifier = require('Verifier');
 
+    var mapper = new Map();
 
 
     function MasterPage(file, config) {
 
-        Mapper.setGuid(this);
         config = Defaults.clone(module.id, config);
 
         var htdocsDir = config.htdocsDir;

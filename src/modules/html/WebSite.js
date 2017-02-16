@@ -4,7 +4,6 @@
 */
 define('WebSite', function (require, module, exports) {
 
-    var $ = require('$');
     var File = require('File');
     var Directory = require('Directory');
     var Patterns = require('Patterns');
@@ -14,18 +13,16 @@ define('WebSite', function (require, module, exports) {
 
     var Watcher = require('Watcher');
     var Log = require('Log');
-    var Mapper = $.require('Mapper');
-
-    var mapper = new Mapper();
 
     var Masters = module.require('Masters');
     var Packages = module.require('Packages');
     var Url = module.require('Url');
 
+    var mapper = new Map();
+
     
     function WebSite(config) {
 
-        Mapper.setGuid(this);
         config = Defaults.clone(module.id, config);
 
         var meta = {
@@ -160,7 +157,7 @@ define('WebSite', function (require, module, exports) {
         open: function (options) {
             var meta = mapper.get(this);
 
-            options = $.Object.extend({}, options, {
+            options = Object.assign({}, options, {
                 'tips': '打开页面',
                 'sample': meta.url,
                 'dir': options.dir || meta.htdocsDir,
@@ -186,7 +183,7 @@ define('WebSite', function (require, module, exports) {
 
             var qr = meta.qr;
 
-            options = $.Object.extend({}, options, {
+            options = Object.assign({}, options, {
                 'sample': qr.url,
                 'query': {
                     'w': options.width || qr.width,
@@ -201,7 +198,7 @@ define('WebSite', function (require, module, exports) {
 
 
         destroy: function () {
-            mapper.remove(this);
+            mapper.delete(this);
         },
 
     };

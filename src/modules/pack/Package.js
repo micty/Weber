@@ -17,21 +17,18 @@ define('Package', function (require, module, exports) {
     var Patterns = require('Patterns');
     var Log = require('Log');
 
-    var Mapper = $.require('Mapper');
     var Emitter = $.require('Emitter');
-    
     var HtmlPackage = require('HtmlPackage');
     var JsPackage = require('JsPackage');
     var LessPackage = require('LessPackage');
 
-    var mapper = new Mapper();
+    var mapper = new Map();
     var name$file = {};         //记录包的名称与文件名的对应关系，防止出现重名的包。
 
 
 
     function Package(file, config) {
 
-        Mapper.setGuid(this);
         config = Defaults.clone(module.id, config);
 
         var htdocsDir = config.htdocsDir;

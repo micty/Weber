@@ -14,18 +14,16 @@ define('HtmlPackage', function (require, module, exports) {
     var HtmlLinks = require('HtmlLinks');
     var MD5 = require('MD5');
 
-    var Mapper = $.require('Mapper');
     var Emitter = $.require('Emitter');
     
 
-    var mapper = new Mapper();
+    var mapper = new Map();
 
 
 
     function HtmlPackage(dir, config) {
 
 
-        Mapper.setGuid(this);
         config = Defaults.clone(module.id, config);
         var emitter = new Emitter(this);
 

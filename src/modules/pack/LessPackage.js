@@ -14,19 +14,17 @@ define('LessPackage', function (require, module, exports) {
     var Defaults = require('Defaults');
     var MD5 = require('MD5');
 
-    var Mapper = $.require('Mapper');
     var Emitter = $.require('Emitter');
 
    
 
-    var mapper = new Mapper();
+    var mapper = new Map();
 
 
 
     function LessPackage(dir, config) {
 
 
-        Mapper.setGuid(this);
         config = Defaults.clone(module.id, config);
 
 
