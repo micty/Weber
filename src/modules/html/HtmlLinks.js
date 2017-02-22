@@ -325,7 +325,7 @@ define('HtmlLinks', function (require, module, exports) {
                 item.links.destroy();
             });
 
-            mapper.remove(this);
+            mapper.delete(this);
 
 
 
