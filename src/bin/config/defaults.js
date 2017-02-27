@@ -9,6 +9,7 @@ module.exports = {
         buildDir: '../build/htdocs/',
         cssDir: 'style/css/',
         packageDir: 'package/',
+        packageFile: 'package/package.json',    //输出的总包文件。 如果指定此值，则会生成一个空的 package.json 文件。
 
         masters: '**/*.master.html',
         url: 'http://{host}/{dir}index.html{query}',

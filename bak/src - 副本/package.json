@@ -1,0 +1,36 @@
+{
+    "name": "auto-weber",
+    "version": "0.2.4",
+    "description": "auto web develop tool",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "auto",
+        "weber",
+        "partial"
+    ],
+    "author": {
+        "name": "mictydeng",
+        "email": "mictydeng@qq.com"
+    },
+    "license": "ISC",
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/micty/autoweber.git"
+    },
+    "dependencies": {
+        "colors": "",
+        "defineJS": "",
+        "gaze": "",
+        "html-minifier": "",
+        "iconv-lite": "",
+        "less": "",
+        "minimatch": "",
+        "uglify-js": ""
+    },
+    "devDependencies": {
+        
+    }
+}

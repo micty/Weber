@@ -5,11 +5,14 @@
 define('WebSite', function (require, module, exports) {
 
     var File = require('File');
+    var Path = require('Path');
     var Directory = require('Directory');
     var Patterns = require('Patterns');
     var FileRefs = require('FileRefs');
     var Defaults = require('Defaults');
     var Tasks = require('Tasks');
+    var Package = require('Package');
+
 
     var Watcher = require('Watcher');
     var Log = require('Log');
@@ -122,6 +125,12 @@ define('WebSite', function (require, module, exports) {
             
             //这里要先创建 package 目录，否则 watcher 会出错，暂未找到根本原因。
             Directory.create(packageDir);
+
+            var packageFile = meta.packageFile;
+            if (packageFile) {
+                var dest = Path.join(meta.htdocsDir, packageFile);
+                Package.write(dest); //写一个空 {} 入到总包
+            }
 
             var processMasters = Masters.watch(meta);
             var processPackages = meta.packages ? Packages.watch(meta) : null;

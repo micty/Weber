@@ -1,13 +1,16 @@
 ﻿
-
 var $ = require('./f/miniquery');
 var Emitter = $.require('Emitter');
 var emitter = new Emitter();
 
-var meta = null;
+
+var ready = false;
+var website = null;
+var $require = null;
 
 
 function run() {
+
     var defineJS = require('defineJS');
 
     defineJS.config({
@@ -22,81 +25,61 @@ function run() {
 
     defineJS.run(function (require, module) {
 
+        $require = require;
+
         var WebSite = require('WebSite');
-        var website = new WebSite();
+        website = new WebSite();
 
-        meta = {
-            'require': require,
-            'module': module,
-            'website': website,    //必须在调用 config() 后再次构造，以让新的配置生效。
-        };
-
-        emitter.fire('ready', [require, module]);
+        ready = true;
+        emitter.fire('ready');
     });
 }
 
 
 
 
-module.exports = {
+//module.exports = 
+Object.entries({
 
-    /**
-    * 
-    */
-    on: function () {
-        var args = [].slice.call(arguments);
-        emitter.on.apply(emitter, args);
-    },
-
+    on: null,
 
     /**
     * 
     */
     config: function (files) {
-        if (meta) {
-            config(files);
-            return;
+        if (!Array.isArray(files)) {
+            files = [files];
         }
 
-        emitter.on('ready', function () {
-            config(files);
-        });
-        run();
+        var path = require('path');
+        var Defaults = $require('Defaults');
+        var File = $require('File');
 
-        function config(files) {
-            if (!Array.isArray(files)) {
-                files = [files];
+        files.forEach(function (file) {
+            var defaults = file;
+
+            if (typeof file == 'string') {
+                file = path.resolve(file);
+                file = file.replace(/\\/g, '/');
+
+                var ext = path.extname(file).toLowerCase();
+                if (ext == '.json') {
+                    defaults = File.readJSON(file);
+                }
+                else { // js
+                    defaults = require(file);
+                }
             }
 
-            var path = require('path');
-            var Defaults = meta.require('Defaults');
-            var File = meta.require('File');
+            Defaults.set(defaults);
+        });
 
-            files.forEach(function (file) {
-                var defaults = file;
+        //再次构造，以让新的配置生效。
+        website && website.destroy();
 
-                if (typeof file == 'string') {
-                    file = path.resolve(file);
-                    file = file.replace(/\\/g, '/');
+        var WebSite = $require('WebSite');
+        website = new WebSite();
 
-                    var ext = path.extname(file).toLowerCase();
-                    if (ext == '.json') {
-                        defaults = File.readJSON(file);
-                    }
-                    else { // js
-                        defaults = require(file);
-                    }
-                }
-
-                Defaults.set(defaults);
-            });
-
-            //再次构造，以让新的配置生效。
-            meta.website && meta.website.destroy();
-            var WebSite = meta.require('WebSite');
-            meta.website = new WebSite();
-
-        }
     },
 
 
@@ -104,71 +87,56 @@ module.exports = {
     * 
     */
     watch: function () {
-        if (meta) {
-            watch();
-            return;
-        }
-
-        emitter.on('ready', watch);
-        run();
-
-        function watch() {
-            meta.website.watch(function () {
-                emitter.fire('watch');
-            });
-        }
+        website.watch(function () {
+            emitter.fire('watch');
+        });
     },
 
     /**
     * 
     */
     build: function (options) {
-        if (meta) {
-            build(options);
-            return;
-        }
-
-        emitter.on('ready', function () {
-            build(options);
+        website.build(options, function () {
+            emitter.fire('build');
         });
-        run();
-
-        function build(options) {
-            meta.website.build(options, function () {
-                emitter.fire('build');
-            });
-        }
-
     },
 
     /**
     * 
     */
     open: function (options) {
-        if (meta) {
-            meta.website.open(options);
-            return;
-        }
-
-        emitter.on('ready', function () {
-            meta.website.open(options);
-        });
-        run();
+        website.open(options);
     },
 
     /**
     * 
     */
     openQR: function (options) {
-        if (meta) {
-            meta.website.openQR(options);
-            return;
+        website.openQR(options);
+    },
+
+
+
+}).forEach(function (item) {
+
+    //简单包一层，让业务层可以以同步方式调用。
+
+    var key = item[0];
+    var fn = item[1];
+
+    module.exports[key] = function () {
+        var args = arguments;
+
+        if (ready) {
+            return fn(...args); //ES6 语法。
         }
 
         emitter.on('ready', function () {
-            meta.website.openQR(options);
+            fn(...args);
         });
-        run();
-    },
 
-};
+        run();
+    };
+
+    module.exports.on = emitter.on.bind(emitter);
+});

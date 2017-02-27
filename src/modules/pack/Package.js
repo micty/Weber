@@ -471,7 +471,7 @@ define('Package', function (require, module, exports) {
 
             var json = File.readJSON(dest) || {};
 
-            pkgs.forEach(function (pkg) {
+            pkgs && pkgs.forEach(function (pkg) {
 
                 var obj = pkg.get();
 

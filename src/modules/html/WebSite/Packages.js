@@ -126,6 +126,8 @@ define('WebSite/Packages', function (require, module, exports) {
                 packages = Patterns.getFiles(htdocsDir, packages);
                 var count = packages.length;
                 if (count == 0) {
+                   
+
                     done && done();
                     return;
                 }
