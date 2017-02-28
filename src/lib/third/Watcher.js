@@ -26,8 +26,6 @@ define('Watcher', function (require, module, exports) {
     function Watcher(config) {
 
 
-        Mapper.setGuid(this);
-
         config = Defaults.clone(module.id, config);
 
 
