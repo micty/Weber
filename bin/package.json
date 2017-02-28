@@ -1,12 +1,13 @@
 
 {
-    "name": "iweber",
+    "name": "auto-weber",
     "version": "",
     "dependencies": {},
     
     "devDependencies": {
         "grunt": "",
-        "grunt-contrib-copy": ""
+        "grunt-contrib-copy": "",
+        "grunt-contrib-clean": ""
     }, 
 
     "engines": {

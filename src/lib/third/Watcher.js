@@ -15,8 +15,8 @@ define('Watcher', function (require, module, exports) {
     
 
     var Emitter = $.require('Emitter');
-    var Mapper = $.require('Mapper');
-    var mapper = new Mapper();
+    
+    var mapper = new Map();
 
     //https://github.com/shama/gaze
     var Gaze = require('gaze').Gaze;
@@ -201,7 +201,7 @@ define('Watcher', function (require, module, exports) {
             var emitter = meta.emitter;
             emitter.destroy();
 
-            mapper.remove(this);
+            mapper.delete(this);
 
         },
 
