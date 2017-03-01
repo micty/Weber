@@ -9,6 +9,9 @@ module.exports = function (grunt) {
 
     grunt.initConfig({
         clean: {
+            options: {
+                force: true,
+            },
             node_modules: [
                 '../src/node_modules/',
                 //dest + '/node_modules/',

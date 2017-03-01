@@ -31,6 +31,11 @@ define('Directory', function (require, module, exports) {
     * 检测指定的路径是否为目录。
     */
     function check(path) {
+        var existed = fs.existsSync(path);
+        if (!existed) {
+            return;
+        }
+
         var stat = fs.statSync(path);
         return stat.isDirectory();
     }

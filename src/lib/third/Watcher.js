@@ -50,25 +50,21 @@ define('Watcher', function (require, module, exports) {
         mapper.set(this, meta);
 
 
-       Object.keys(event$desc).forEach(function (event) {
+        Object.entries(event$desc).forEach(function (keyvalue) {
 
-            (function (event) {
-
+            (function (event, desc) {
                 var tid = null;
-                var files = {};
-
+                var files = new Set();
 
                 watcher.on(event, function (file) {
 
-                    //没有绑定该类型的事件。
-                    if (!events[event]) {
+                    //没有绑定该类型的事件。 
+                    //或是一个目录。
+                    if (!events[event] ||
+                        Directory.check(file)) {
                         return;
                     }
 
-                    //是一个目录。
-                    if (Directory.check(file)) {
-                        return;
-                    }
 
                     file = Path.relative('./', file);
 
@@ -83,14 +79,13 @@ define('Watcher', function (require, module, exports) {
                     }
 
                     clearTimeout(tid);
-                    files[file] = ''; //增加一条记录
+                    files.add(file);//增加一条记录
 
-                    var desc = event$desc[event];
                     console.log(desc.cyan, file);
 
                     tid = setTimeout(function () {
 
-                        var list = Object.keys(files);
+                        var list = Array.from(files);
 
                         emitter.fire(event, [list]);
                         Watcher.log();
@@ -98,7 +93,7 @@ define('Watcher', function (require, module, exports) {
                     }, 500);
                 });
 
-            })(event);
+            })(keyvalue[0], keyvalue[1]);
 
 
         });
