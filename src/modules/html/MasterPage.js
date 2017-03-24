@@ -57,10 +57,12 @@ define('MasterPage', function (require, module, exports) {
             'name$master': {}, //每个模块填充后的中间结果
             'minifyHtml': config.minifyHtml,
 
+            'htdocsDir': htdocsDir,
+
             //子模块实例
-            'HtmlList': new HtmlList(dir, {
-                'htdocsDir': htdocsDir,
-            }),
+
+            //HtmlList 实例的列表，多个实例数组。
+            'HtmlLists': [],
 
             'HtmlLinks': new HtmlLinks(dir, {
                 'base': config.base || name,    //二级目录
@@ -99,7 +101,6 @@ define('MasterPage', function (require, module, exports) {
         compile: function (done) {
             var meta = mapper.get(this);
 
-            var HtmlList = meta.HtmlList;
             var HtmlLinks = meta.HtmlLinks;
             var CssLinks = meta.CssLinks;
             var JsScripts = meta.JsScripts;
@@ -114,13 +115,23 @@ define('MasterPage', function (require, module, exports) {
             var master = File.read(meta.file);
             meta.master = master;
 
+            //创建多个 HtmlList 实例，每个都有一个唯一的 id 字段。
+            var HtmlLists = meta.HtmlLists = HtmlList.create(master, meta.dir);
+
+
             //动态引用 html 
-            HtmlList.reset();
-            HtmlList.parse(master);
-            HtmlList.get();
-            HtmlList.toHtml();
-            master = HtmlList.mix();
-            name$master['HtmlList'] = master;
+            HtmlLists.map(function (item) {
+                item.reset();
+                item.parse(master);
+                item.get();
+                item.toHtml();
+                master = item.mix();
+
+                name$master['HtmlList'] = master;
+            });
+
+           
+
 
             //静态引用 html 
             HtmlLinks.reset();
@@ -164,14 +175,14 @@ define('MasterPage', function (require, module, exports) {
                 LessList.get();
 
                 //检查重复引用或内容相同的文件。
-                self.uniqueFiles();
+                self.uniqueFiles(false);
 
                 LessList.compile(function () {
                     LessList.toHtml();
                     master = LessList.mix();
 
                     //检查重复使用的 id。
-                    self.uniqueIds(master);
+                    self.uniqueIds(master, false);
 
 
                     File.write(meta.dest, master);
@@ -189,11 +200,11 @@ define('MasterPage', function (require, module, exports) {
         * 根据当前各个资源引用模块生成的结果，混合成最终的 html。
         * 该方法主要给 watch() 使用。
         */
-        mix: function (name) {
+        mix: function (name, HtmlList) {
 
             var meta = mapper.get(this);
            
-            var HtmlList = meta.HtmlList;
+        
             var HtmlLinks = meta.HtmlLinks;
             var CssLinks = meta.CssLinks;
             var JsScripts = meta.JsScripts;
@@ -259,8 +270,8 @@ define('MasterPage', function (require, module, exports) {
                
             }
 
-            this.uniqueFiles();
-            this.uniqueIds(master);
+            this.uniqueFiles(false);
+            this.uniqueIds(master, false);
 
             File.write(meta.dest, master);
         },
@@ -276,7 +287,7 @@ define('MasterPage', function (require, module, exports) {
             }
 
             //首次创建
-            var HtmlList = meta.HtmlList;
+            var HtmlLists = meta.HtmlLists;
             var HtmlLinks = meta.HtmlLinks;
             var CssLinks = meta.CssLinks;
             var JsScripts = meta.JsScripts;
@@ -292,7 +303,10 @@ define('MasterPage', function (require, module, exports) {
             watcher.on('changed', function () {
                 self.compile();     //根节点发生变化，需要重新编译。
                
-                HtmlList.watch();
+                HtmlLists.map(function (item) {
+                    item.watch();
+                });
+
                 HtmlLinks.watch();
                 CssLinks.watch();
                 JsScripts.watch();
@@ -301,9 +315,13 @@ define('MasterPage', function (require, module, exports) {
                 LessList.watch();
             });
             
-            HtmlList.watch();
-            HtmlList.on('change', function () {
-                self.mix('HtmlList');
+           
+
+            HtmlLists.map(function (item) {
+                item.watch();
+                item.on('change', function () {
+                    self.mix('HtmlList', item);
+                });
             });
 
             HtmlLinks.watch();
@@ -380,7 +398,6 @@ define('MasterPage', function (require, module, exports) {
             var self = this;
             var meta = mapper.get(this);
 
-            var HtmlList = meta.HtmlList;
             var HtmlLinks = meta.HtmlLinks;
             var CssLinks = meta.CssLinks;
             var JsScripts = meta.JsScripts;
@@ -390,12 +407,20 @@ define('MasterPage', function (require, module, exports) {
 
             var master = File.read(meta.file);
 
+
+
+            //创建多个 HtmlList 实例，每个都有一个唯一的 id 字段。
+            var HtmlLists = meta.HtmlLists = HtmlList.create(master, meta.dir);
+
             //动态引用 html 
-            HtmlList.reset();
-            HtmlList.parse(master);
-            HtmlList.get();
-            HtmlList.toHtml();
-            master = HtmlList.mix();
+            HtmlLists.map(function (item) {
+                item.reset();
+                item.parse(master);
+                item.get();
+                item.toHtml();
+                master = item.mix();
+            });
+
 
             //静态引用 html 
             HtmlLinks.reset();
@@ -466,7 +491,7 @@ define('MasterPage', function (require, module, exports) {
 
 
                     //检查重复引用或内容相同的文件。
-                    self.uniqueFiles();
+                    self.uniqueFiles(true);
 
                     var opt = options.lessList;
                     LessList.compile(opt.compile, function () {
@@ -484,7 +509,7 @@ define('MasterPage', function (require, module, exports) {
 
                         function after() {
 
-                            self.uniqueIds(master);
+                            self.uniqueIds(master, true);
 
                             var minifyHtml = options.minifyHtml;
                             if (minifyHtml) {
@@ -515,7 +540,7 @@ define('MasterPage', function (require, module, exports) {
                 LessList.get() ;
             后使用该方法。
         */
-        uniqueFiles: function () {
+        uniqueFiles: function (stop) {
 
             var meta = mapper.get(this);
             var JsScripts = meta.JsScripts;
@@ -536,7 +561,9 @@ define('MasterPage', function (require, module, exports) {
 
             if (invalid) {
                 console.log(('页面 ' + meta.file + ' 无法通过编译，请修正!').bgRed);
-                throw new Error();
+                if (stop) {
+                    throw new Error();
+                }
             }
 
         },
@@ -544,14 +571,16 @@ define('MasterPage', function (require, module, exports) {
         /**
         * 检查重复使用的 id。
         */
-        uniqueIds: function (master) {
+        uniqueIds: function (master, stop) {
 
             var meta = mapper.get(this);
             var invalid = Verifier.ids(master);
 
             if (invalid) {
                 console.log(('页面 ' + meta.file + ' 无法通过编译，请修正!').bgRed);
-                throw new Error();
+                if (stop) {
+                    throw new Error();
+                }
             }
         },
 
@@ -560,19 +589,6 @@ define('MasterPage', function (require, module, exports) {
         clean: function () {
             var meta = mapper.get(this);
 
-            var HtmlList = meta.HtmlList;
-            var HtmlLinks = meta.HtmlLinks;
-            var CssLinks = meta.CssLinks;
-            var JsScripts = meta.JsScripts;
-            var JsList = meta.JsList;
-            var LessList = meta.LessList;
-
-       
-            //HtmlLinks.delete();
-            //CssLinks.delete(); 
-            //JsScripts.delete(); 
-            //JsList.delete();
-            //LessList.delete();
 
             FileRefs.delete(meta.file);
         },

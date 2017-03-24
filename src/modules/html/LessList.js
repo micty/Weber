@@ -509,9 +509,7 @@ define('LessList', function (require, module, exports) {
             var build = meta.build;
             var content = build.content;
 
-            
-
-            var Less = require('less');
+            var Less = require('Less');
 
             Less.render(content, {
                 compress: true,

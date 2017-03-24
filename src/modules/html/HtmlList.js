@@ -28,7 +28,6 @@ define('HtmlList', function (require, module, exports) {
         var rid = $.String.random(4); //随机 id
 
         var meta = {
-            
             'dir': dir,         //母版页所在的目录。
             'master': '',       //母版页的内容，在 parse() 中用到。
             'html': '',         //模式所生成的 html 块，即缓存 toHtml() 方法中的返回结果。
@@ -47,12 +46,16 @@ define('HtmlList', function (require, module, exports) {
 
         mapper.set(this, meta);
 
+        this.id = 'HtmlList-' + $.String.random(4);
+
     }
 
 
 
     HtmlList.prototype = {
         constructor: HtmlList,
+
+        id: '',
 
         /**
         * 重置为初始状态，即创建时的状态。
@@ -89,10 +92,19 @@ define('HtmlList', function (require, module, exports) {
                 return;
             }
 
-            var patterns = $.String.between(html, '<script>', '</script>');
+            //patterns 中的 html 可能含有 id 等其它属性。
+            //如 <script id="views"></script>，分两次逐步提取。
+            var patterns = $.String.between(html, '<script', '</script>');
             if (!patterns) {
                 return;
             }
+
+            var index = patterns.indexOf('>');
+            if (index < 0) {
+                return;
+            }
+
+            patterns = patterns.slice(index + 1);
 
             //母版页中可能会用到的上下文。
             var context = {
@@ -132,9 +144,7 @@ define('HtmlList', function (require, module, exports) {
         * 根据当前模式获取对应真实的 html 文件列表和其它信息。
         */
         get: function () {
-
             var meta = mapper.get(this);
-
 
             var patterns = meta.patterns;
             var list = Patterns.getFiles(patterns);
@@ -181,8 +191,12 @@ define('HtmlList', function (require, module, exports) {
                 });
             });
 
+            //多一个空行。
+            list = [''].concat(list);
+
             var Lines = require('Lines');
             var seperator = Lines.seperator + '    ';
+
             meta.html = list.join(seperator) + seperator;
 
         },
@@ -203,8 +217,8 @@ define('HtmlList', function (require, module, exports) {
             var endIndex = beginIndex + outer.length;
 
             master =
-                master.slice(0, beginIndex) +
-                meta.html +
+                master.slice(0, beginIndex) + 
+                meta.html + 
                 master.slice(endIndex);
 
             return master;
@@ -277,7 +291,22 @@ define('HtmlList', function (require, module, exports) {
 
 
 
-    return HtmlList;
+    return Object.assign(HtmlList, {
+
+        //创建相应的多个实例的列表。
+        create: function (master, dir, config) {
+            config = Defaults.clone(module.id, config);
+          
+            var list = master.split(config.tags.begin);
+
+            list = list.slice(1).map(function (item) {
+                return new HtmlList(dir, config);
+            });
+
+            return list;
+        },
+
+    });
 
 
 

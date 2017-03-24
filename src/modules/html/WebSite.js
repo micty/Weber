@@ -70,6 +70,13 @@ define('WebSite', function (require, module, exports) {
             Directory.delete(buildDir + cssDir);
             Directory.delete(buildDir + packageDir);
 
+            var packageFile = meta.packageFile;
+            if (packageFile) {
+                var dest = Path.join(buildDir, packageFile);
+                Package.write(dest); //写一个空 {} 入到总包
+            }
+
+
             var processMasters = Masters.build(meta, options.masters);
             var processPackages = meta.packages ? Packages.build(meta, options.packages) : null;
 
