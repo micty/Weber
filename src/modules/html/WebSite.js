@@ -38,9 +38,14 @@ define('WebSite', function (require, module, exports) {
             'packageFile': config.packageFile,
             'url': config.url,
             'qr': config.qr,
+            'cwd': config.htdocsDir,  //当前工作目录，是 htdocsDir 或 buildDir。
+
+
         };
 
         mapper.set(this, meta);
+
+        WebSite.current = this;
 
     }
 
@@ -48,6 +53,8 @@ define('WebSite', function (require, module, exports) {
 
     WebSite.prototype = {
         constructor: WebSite,
+
+
 
         /**
         * 构建整个站点。
@@ -58,21 +65,21 @@ define('WebSite', function (require, module, exports) {
             var htdocsDir = meta.htdocsDir;
             var cssDir = meta.cssDir;
             var packageDir = meta.packageDir;
-            var buildDir = meta.buildDir = options.dir || meta.buildDir;
+            var cwd = meta.cwd = options.dir || meta.buildDir;
 
-            console.log('删除目录'.bgYellow, buildDir.yellow);
-            Directory.delete(buildDir);
+            console.log('删除目录'.bgYellow, cwd.yellow);
+            Directory.delete(cwd);
 
-            console.log('复制目录'.bgMagenta, htdocsDir.green, '→', buildDir.cyan);
-            Directory.copy(htdocsDir, buildDir);
+            console.log('复制目录'.bgMagenta, htdocsDir.green, '→', cwd.cyan);
+            Directory.copy(htdocsDir, cwd);
           
             //先删除自动生成的目录，后续会再生成回来。
-            Directory.delete(buildDir + cssDir);
-            Directory.delete(buildDir + packageDir);
+            Directory.delete(cwd + cssDir);
+            Directory.delete(cwd + packageDir);
 
             var packageFile = meta.packageFile;
             if (packageFile) {
-                var dest = Path.join(buildDir, packageFile);
+                var dest = Path.join(cwd, packageFile);
                 Package.write(dest); //写一个空 {} 入到总包
             }
 
@@ -103,7 +110,7 @@ define('WebSite', function (require, module, exports) {
                     //需要清理的文件或目录。
                     var clean = options.clean;
                     if (clean) {
-                        var files = Patterns.getFiles(buildDir, clean);
+                        var files = Patterns.getFiles(cwd, clean);
                         File.delete(files);
 
                         Log.seperate();
@@ -112,7 +119,7 @@ define('WebSite', function (require, module, exports) {
                     }
 
                     //递归删除空目录
-                    Directory.trim(buildDir);
+                    Directory.trim(cwd);
                     Log.allDone('全部构建完成');
                     done && done();
                 },
@@ -125,7 +132,8 @@ define('WebSite', function (require, module, exports) {
         */
         watch: function (done) {
             var meta = mapper.get(this);
-            var packageDir = meta.htdocsDir + meta.packageDir;
+            var cwd = meta.cwd = meta.htdocsDir;
+            var packageDir = cwd + meta.packageDir;
 
             //先清空，避免使用者意外用到。
             Directory.delete(packageDir);
@@ -135,7 +143,7 @@ define('WebSite', function (require, module, exports) {
 
             var packageFile = meta.packageFile;
             if (packageFile) {
-                var dest = Path.join(meta.htdocsDir, packageFile);
+                var dest = Path.join(cwd, packageFile);
                 Package.write(dest); //写一个空 {} 入到总包
             }
 
@@ -176,7 +184,7 @@ define('WebSite', function (require, module, exports) {
             options = Object.assign({}, options, {
                 'tips': '打开页面',
                 'sample': meta.url,
-                'dir': options.dir || meta.htdocsDir,
+                'dir': options.dir || meta.cwd,
             });
 
             Url.open(options);
@@ -192,7 +200,7 @@ define('WebSite', function (require, module, exports) {
 
             var url = Url.get({
                 'sample': meta.url,
-                'dir': options.dir || meta.htdocsDir,
+                'dir': options.dir || meta.cwd,
                 'query': options.query,
                 'host': options.host,
             });
@@ -215,9 +223,24 @@ define('WebSite', function (require, module, exports) {
 
         destroy: function () {
             mapper.delete(this);
+
+            if (WebSite.current === this) {
+                WebSite.current = null;
+            }
         },
 
+        getFiles: function (patterns) {
+            var Patterns = require('Patterns');
+            var meta = mapper.get(this);
+            var files = Patterns.getFiles(meta.cwd, patterns);
+
+            return files;
+        },
     };
+
+
+    //记录当前正在使用的 WebSite 实例。
+    WebSite.current = null;
 
 
     return WebSite;

@@ -26,10 +26,10 @@ define('WebSite/Packages', function (require, module, exports) {
                 var cssDir = meta.cssDir;
                 var packageDir = meta.packageDir;
                 var packageFile = meta.packageFile;
-                var buildDir = meta.buildDir;
+                var cwd = meta.cwd;
 
                 //从模式中获取真实的 package.json 文件列表。
-                packages = Patterns.getFiles(buildDir, packages);
+                packages = Patterns.getFiles(cwd, packages);
 
                 var count = packages.length;
                 if (count == 0) {
@@ -50,13 +50,13 @@ define('WebSite/Packages', function (require, module, exports) {
                     var addPath = opt.addPath;
 
                     if (header) {
-                        opt.header = Path.join(buildDir, header);
+                        opt.header = Path.join(cwd, header);
                     }
                     if (footer) {
-                        opt.footer = Path.join(buildDir, footer);
+                        opt.footer = Path.join(cwd, footer);
                     }
                     if (addPath === true) {
-                        opt.addPath = buildDir; //添加文件路径的注释所使用的相对路径。
+                        opt.addPath = cwd; //添加文件路径的注释所使用的相对路径。
                     }
                 }
 
@@ -68,10 +68,10 @@ define('WebSite/Packages', function (require, module, exports) {
                         Log.seperate();
                         console.log('>> 开始打包'.cyan, file);
 
-                        var href = Path.relative(buildDir, file);
+                        var href = Path.relative(cwd, file);
 
                         var pkg = new Package(href, {
-                            'htdocsDir': buildDir,
+                            'htdocsDir': cwd,
                             'cssDir': cssDir,
                             'packageDir': packageDir,
                         });
@@ -96,7 +96,7 @@ define('WebSite/Packages', function (require, module, exports) {
 
                         var opt = (options.minify || {}).json;
                         if (opt.write) {
-                            var dest = Path.join(buildDir, packageFile);
+                            var dest = Path.join(cwd, packageFile);
                             Package.write(dest, pkgs, opt.minify);      //写入到总包
 
                             done && done();
@@ -120,10 +120,10 @@ define('WebSite/Packages', function (require, module, exports) {
                 var cssDir = meta.cssDir;
                 var packageDir = meta.packageDir;
                 var packageFile = meta.packageFile;
-                var htdocsDir = meta.htdocsDir;
+                var cwd = meta.cwd;
 
                 //从模式中获取真实的 package.json 文件列表。
-                packages = Patterns.getFiles(htdocsDir, packages);
+                packages = Patterns.getFiles(cwd, packages);
                 var count = packages.length;
                 if (count == 0) {
                    
@@ -136,7 +136,7 @@ define('WebSite/Packages', function (require, module, exports) {
                 Log.logArray(packages, 'magenta');
 
 
-                var dest = Path.join(htdocsDir, packageFile);
+                var dest = Path.join(cwd, packageFile);
 
                 function write(pkgs) {
                     if (!Array.isArray(pkgs)) {
@@ -154,10 +154,10 @@ define('WebSite/Packages', function (require, module, exports) {
                         Log.seperate();
                         console.log('>> 开始打包'.cyan, file);
 
-                        var href = Path.relative(htdocsDir, file);
+                        var href = Path.relative(cwd, file);
 
                         var pkg = new Package(href, {
-                            'htdocsDir': htdocsDir,
+                            'htdocsDir': cwd,
                             'cssDir': cssDir,
                             'packageDir': packageDir,
                         });

@@ -95,10 +95,19 @@ define('JS', function (require, module, exports) {
 
             //https://github.com/mishoo/UglifyJS2
             var UglifyJS = require('uglify-js');
+            var code = '';
 
-            //直接从内容压缩，不读取文件
-            var result = UglifyJS.minify(content, { fromString: true, });
-            content = result.code;
+            try{
+                //直接从内容压缩，不读取文件
+                var result = UglifyJS.minify(content, { fromString: true, });
+                code = result.code;
+            }
+            catch (ex) {
+                console.log('JS 压缩错误'.red);
+                File.write('all.error.debug.js', content);
+                throw ex;
+            }
+          
 
             var dest = options.dest;
             if (dest) {
@@ -106,18 +115,18 @@ define('JS', function (require, module, exports) {
                 if (typeof dest == 'object') {
                     var name = dest.name;
                     if (typeof name == 'number') {
-                        name = MD5.get(content, name);
+                        name = MD5.get(code, name);
                         name += '.js';
                     }
 
                     dest = dest.dir + name;
                 }
 
-                File.write(dest, content); //写入合并后的 js 文件
+                File.write(dest, code); //写入合并后的 js 文件
 
             }
 
-            return content;
+            return code;
         },
 
     };

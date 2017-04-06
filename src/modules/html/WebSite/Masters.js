@@ -30,11 +30,11 @@ define('WebSite/Masters', function (require, module, exports) {
 
                 var masters = meta.masters;
                 var cssDir = meta.cssDir;
-                var buildDir = meta.buildDir;
+                var cwd = meta.cwd;
 
 
                 //从模式中获取真实的 master 文件列表。
-                masters = Patterns.getFiles(buildDir, masters);
+                masters = Patterns.getFiles(cwd, masters);
                 console.log('匹配到'.bgGreen, masters.length.toString().cyan, '个模板页:');
                 Log.logArray(masters);
 
@@ -47,14 +47,14 @@ define('WebSite/Masters', function (require, module, exports) {
 
                     var item = process[pattern];
 
-                    var files = Patterns.combine(buildDir, pattern);
+                    var files = Patterns.combine(cwd, pattern);
                     files = Patterns.getFiles(files);
 
                     if (typeof item == 'function') {  //针对 item 为一个回调函数时。
                         files.forEach(function (file) {
                             var content = File.read(file);
 
-                            var href = Path.relative(buildDir, file);
+                            var href = Path.relative(cwd, file);
                             content = item(href, content, require);
 
                             if (content == null) {
@@ -108,13 +108,13 @@ define('WebSite/Masters', function (require, module, exports) {
                         var addPath = opt.addPath;
 
                         if (header) {
-                            opt.header = Path.join(buildDir, header);
+                            opt.header = Path.join(cwd, header);
                         }
                         if (footer) {
-                            opt.footer = Path.join(buildDir, footer);
+                            opt.footer = Path.join(cwd, footer);
                         }
                         if (addPath === true) {
-                            opt.addPath = buildDir; //添加文件路径的注释所使用的相对路径。
+                            opt.addPath = cwd; //添加文件路径的注释所使用的相对路径。
                         }
 
                     }
@@ -128,10 +128,10 @@ define('WebSite/Masters', function (require, module, exports) {
                         Log.seperate();
                         console.log('>> 开始构建'.cyan, file);
 
-                        var href = Path.relative(buildDir, file);
+                        var href = Path.relative(cwd, file);
 
                         var master = new MasterPage(href, {
-                            'htdocsDir': buildDir,
+                            'htdocsDir': cwd,
                             'cssDir': cssDir,
                         });
 
@@ -178,11 +178,12 @@ define('WebSite/Masters', function (require, module, exports) {
             return function (done) {
 
                 var masters = meta.masters;
-                var htdocsDir = meta.htdocsDir;
+                var cwd = meta.cwd;
                 var cssDir = meta.cssDir;
 
+
                 //从模式中获取真实的文件列表
-                masters = Patterns.getFiles(htdocsDir, masters);
+                masters = Patterns.getFiles(cwd, masters);
                 console.log('匹配到'.bgGreen, masters.length.toString().cyan, '个模板页:');
                 Log.logArray(masters);
 
@@ -193,9 +194,9 @@ define('WebSite/Masters', function (require, module, exports) {
                         Log.seperate();
                         console.log('>> 开始编译'.cyan, file);
 
-                        var href = Path.relative(htdocsDir, file);
+                        var href = Path.relative(cwd, file);
                         var master = new MasterPage(href, {
-                            'htdocsDir': htdocsDir,
+                            'htdocsDir': cwd,
                             'cssDir': cssDir,
                         });
 

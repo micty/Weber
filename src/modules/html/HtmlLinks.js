@@ -18,6 +18,8 @@ define('HtmlLinks', function (require, module, exports) {
     var Emitter = $.require('Emitter');
     var Url = $.require('Url');
 
+    var LogicFile = module.require('LogicFile');
+
     var mapper = new Map();
 
 
@@ -97,7 +99,6 @@ define('HtmlLinks', function (require, module, exports) {
 
             list = $.Array.map(list, function (item, index) {
 
-
                 var index = Lines.getIndex(lines, item, startIndex);
                 var line = lines[index]; //整一行的 html
                 startIndex = index + 1; //下次搜索的起始行号
@@ -112,13 +113,37 @@ define('HtmlLinks', function (require, module, exports) {
                     return null;
                 }
 
+                var file = '';
+                var prefix = Attribute.get(item, 'prefix');
 
-                //以 '/' 开头，如 '/panel.html'，则补充完名称。
-                if (href.slice(0, 1) == '/') {
-                    href = meta.base + href;
+                if (prefix) {
+                    var selector = ' ' + prefix + '="' + href + '"';  //如 ` data-panel="/User/List" `
+                    var matches = LogicFile.get(selector);
+
+                    file = matches[0];
+
+                    if (!file) {
+                        console.log('无法找到内容中含有 '.bgRed, selector.bgYellow, ' 的 html 文件'.bgRed);
+                        throw new Error();
+                    }
+
+                    if (matches.length > 1) {
+                        console.log('找到多个内容中含有 '.bgRed, selector.bgYellow, ' 的 html 文件'.bgRed);
+                        Log.logArray(matches, 'yellow');
+                        throw new Error();
+                    }
+
+                    href = Path.relative(meta.dir, file);
                 }
+                else {
+                    //以 '/' 开头，如 '/panel.html'，则补充完名称。
+                    if (href.slice(0, 1) == '/') {
+                        href = meta.base + href;
+                    }
 
-                var file = path.join(meta.dir, href);
+                    file = path.join(meta.dir, href);
+                }
+                
 
                 href = Path.format(href);
                 file = Path.format(file);
