@@ -19,6 +19,7 @@ var _require = require;
     'less',
     'minimatch',
     'uglify-js',
+    'uglify-es',        //针对 es6 的版本，跟上面的只需要用一个即可。
 
 ].forEach(function (name) {
 

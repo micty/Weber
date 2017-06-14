@@ -1,7 +1,7 @@
 {
     "name": "auto-weber",
-    "version": "0.5.0",
-    "description": "auto web develop tool",
+    "version": "0.5.1",
+    "description": "auto web develop tool, support ES6.",
     "main": "index.js",
     "scripts": {
     },
@@ -27,7 +27,8 @@
         "iconv-lite": "",
         "less": "",
         "minimatch": "",
-        "uglify-js": ""
+        "uglify-js": "",
+        "uglify-es": ""
     },
     "devDependencies": {
         

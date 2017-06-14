@@ -93,13 +93,19 @@ define('JS', function (require, module, exports) {
 
             options = options || {};
 
-            //https://github.com/mishoo/UglifyJS2
-            var UglifyJS = require('uglify-js');
+            ////https://github.com/mishoo/UglifyJS2
+            //var UglifyJS = require('uglify-js');
+
+            //https://github.com/mishoo/UglifyJS2/tree/harmony
+            var UglifyJS = require('uglify-es');
+
             var code = '';
 
             try{
                 //直接从内容压缩，不读取文件
-                var result = UglifyJS.minify(content, { fromString: true, });
+                //var result = UglifyJS.minify(content, { fromString: true, });
+                var result = UglifyJS.minify(content);  // es 版本。
+
                 code = result.code;
             }
             catch (ex) {
