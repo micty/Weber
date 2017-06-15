@@ -147,7 +147,6 @@ define('JS', function (require, module, exports) {
 
     };
 
-    };
 
 
    
