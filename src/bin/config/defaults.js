@@ -20,6 +20,10 @@ module.exports = {
     },
 
 
+    'Console': {
+        file: 'console.log',    //输出的日志文件路径。
+        timestamp: true,        //是否自动加上时间戳。
+    },
 
     'LessList': {
         md5: 4, //填充模板所使用的 md5 的长度

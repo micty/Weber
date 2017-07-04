@@ -4,7 +4,6 @@
 */
 define('WebSite', function (require, module, exports) {
 
-    var File = require('File');
     var Path = require('Path');
     var Directory = require('Directory');
     var Patterns = require('Patterns');
@@ -20,6 +19,7 @@ define('WebSite', function (require, module, exports) {
     var Masters = module.require('Masters');
     var Packages = module.require('Packages');
     var Url = module.require('Url');
+    var Files = module.require('Files');
 
     var mapper = new Map();
 
@@ -50,6 +50,9 @@ define('WebSite', function (require, module, exports) {
     }
 
 
+    
+
+
 
     WebSite.prototype = {
         constructor: WebSite,
@@ -72,6 +75,10 @@ define('WebSite', function (require, module, exports) {
 
             console.log('复制目录'.bgMagenta, htdocsDir.green, '→', cwd.cyan);
             Directory.copy(htdocsDir, cwd);
+
+            //构建前要排除在外的文件或目录。
+            Files.clear(cwd, options.exclude, '排除');
+
           
             //先删除自动生成的目录，后续会再生成回来。
             Directory.delete(cwd + cssDir);
@@ -107,16 +114,9 @@ define('WebSite', function (require, module, exports) {
                 all: function () {
                     FileRefs.clean(); //删除已注册并且引用计数为 0 的物理文件。
 
-                    //需要清理的文件或目录。
-                    var clean = options.clean;
-                    if (clean) {
-                        var files = Patterns.getFiles(cwd, clean);
-                        File.delete(files);
+                    //构建后需要清理的文件或目录。
+                    Files.clear(cwd, options.clean, '清理');
 
-                        Log.seperate();
-                        console.log('清理'.bgMagenta, files.length.toString().cyan, '个文件:');
-                        Log.logArray(files, 'gray');
-                    }
 
                     //递归删除空目录
                     Directory.trim(cwd);

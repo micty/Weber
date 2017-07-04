@@ -27,7 +27,6 @@ define('File', function (require, module, exports) {
             return;
         }
 
-        //console.log('删除'.bgMagenta, file.bgMagenta);
         fs.unlinkSync(file);
         
     }
@@ -81,6 +80,25 @@ define('File', function (require, module, exports) {
     }
 
 
+    function append(file, contents, encoding) {
+
+        var Directory = require('Directory');
+        Directory.create(file);
+
+        // If contents is already a Buffer, don't try to encode it
+        if (!Buffer.isBuffer(contents)) {
+            contents = iconv.encode(contents, encoding || 'utf8'); //编码成 buffer。
+        }
+
+        fs.appendFileSync(file, contents);
+
+        //当指定为 null 时，表示是复制而写入的，不输出 log。
+        if (encoding !== null) {
+            console.log('写入'.bgYellow, file.yellow);
+        }
+    }
+
+
     function copy(src, dest) {
         var contents = read(src, null); //读到的是 buffer
         write(dest, contents, null);
@@ -118,6 +136,7 @@ define('File', function (require, module, exports) {
         'exists': exists,
         'writeJSON': writeJSON,
         'readJSON': readJSON,
+        'append': append,
 
     };
 

@@ -7,6 +7,13 @@ module.exports = {
     dir: '../build/dist/htdocs/',
 
     /**
+    * 构建前要排除在外的文件或目录。
+    */
+    exclude: [
+        
+    ],
+
+    /**
     * 构建完成后需要清理的文件或目录。
     */
     clean: [

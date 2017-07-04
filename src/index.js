@@ -27,10 +27,13 @@ function run() {
 
         $require = require;
 
+        var Console = require('Console');
         var WebSite = require('WebSite');
-        website = new WebSite();
 
+        console.log = Console.log;
+        website = new WebSite();
         ready = true;
+
         emitter.fire('ready');
     });
 }
