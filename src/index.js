@@ -43,9 +43,6 @@ function run() {
 
 //module.exports = 
 Object.entries({
-
-    on: null,
-
     /**
     * 
     */
@@ -59,6 +56,10 @@ Object.entries({
         var File = $require('File');
 
         files.forEach(function (file) {
+            if (!file) {
+                return;
+            }
+
             var defaults = file;
 
             if (typeof file == 'string') {
@@ -85,22 +86,22 @@ Object.entries({
 
     },
 
-
     /**
     * 
     */
-    watch: function () {
+    watch: function (action, args) {
         website.watch(function () {
-            emitter.fire('watch');
+            emitter.fire('watch', action, args);
         });
     },
 
+
     /**
     * 
     */
-    build: function (options) {
+    build: function (options, action, args) {
         website.build(options, function () {
-            emitter.fire('build');
+            emitter.fire('build', action, args);
         });
     },
 
@@ -118,12 +119,9 @@ Object.entries({
         website.openQR(options);
     },
 
-
-
 }).forEach(function (item) {
 
     //简单包一层，让业务层可以以同步方式调用。
-
     var key = item[0];
     var fn = item[1];
 
@@ -140,6 +138,72 @@ Object.entries({
 
         run();
     };
-
-    module.exports.on = emitter.on.bind(emitter);
 });
+
+
+
+Object.assign(module.exports, {
+    on: emitter.on.bind(emitter),
+});
+
+
+/**
+* 解析命令行 `node watch` 后面的参数。
+*/
+module.exports.watch.getArgs = function (args) {
+
+    args = args || [...process.argv];
+
+    var mode = args[2];
+    var action = args[3];
+    var value = args[4];
+
+    //单页应用模式。
+    if (mode != 'pack') {
+        action = args[2];
+        value = args[3];
+    }
+
+    return {
+        'pack': mode == 'pack', //是否使用独立打包的方式。
+        'action': action || '', //编译完成的操作，如 `open` 或 `qr`。
+        'value': value || '',   //要额外传递给 action 的值。
+    };
+};
+
+
+/**
+* 解析命令行 `node build` 后面的参数。
+*/
+module.exports.build.getArgs = function (args) {
+
+    args = args || [...process.argv];
+
+
+    //完整情况: 
+    //node build pack dist open localhost
+    //0    1     2    3    4    5
+
+    var index = 2;
+    var mode = args[index++];
+
+    if (mode != 'pack') {
+        index--;
+    }
+
+    var level = args[index++];
+    if (level == 'open' || level == 'qr') {
+        index--;
+        level = '';     //这里要置空
+    }
+
+    var action = args[index++];
+    var value = args[index++];
+
+    return {
+        'pack': mode == 'pack',     //是否使用独立打包的方式。
+        'level': level || 'dist',   //配置的方案名称，默认为 `dist`。
+        'action': action || '',     //编译完成的操作，如 `open` 或 `qr`。
+        'value': value || '',       //要额外传递给 action 的值。
+    };
+};

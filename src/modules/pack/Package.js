@@ -37,7 +37,7 @@ define('Package', function (require, module, exports) {
         var dir = Path.dirname(file); //分包 package.json 文件所在的目录
 
         var meta = {
-            'dir': dir, 
+            'dir': dir,
             'file': file,
 
             'htdocsDir': htdocsDir,
@@ -102,7 +102,7 @@ define('Package', function (require, module, exports) {
             var file = meta.file;
             var dir = meta.dir;
             var htdocsDir = meta.htdocsDir;
- 
+
             var json = File.readJSON(file);
             var name = json.name;
 
@@ -167,7 +167,7 @@ define('Package', function (require, module, exports) {
             }
 
         },
-        
+
         /**
         * 编译当前包文件。
         */
@@ -199,7 +199,7 @@ define('Package', function (require, module, exports) {
                     HtmlPackage.delete();
                 }
             }
-           
+
 
             if (JsPackage) {
                 var js = options.js;
@@ -209,7 +209,7 @@ define('Package', function (require, module, exports) {
                 JsPackage.get(meta.js.src);
                 meta.js.md5 = JsPackage.concat(js);
             }
-            
+
 
             if (LessPackage) {
                 var less = options.less;
@@ -229,7 +229,7 @@ define('Package', function (require, module, exports) {
             else {
                 done && done();
             }
-           
+
         },
 
         /**
@@ -280,7 +280,7 @@ define('Package', function (require, module, exports) {
                     js.md5 = '';
                 }
             }
-            
+
             if (LessPackage) {
                 var opt = options.less;
                 if (opt && opt.write) {
@@ -304,8 +304,8 @@ define('Package', function (require, module, exports) {
             else {
                 done && done();
             }
-           
-           
+
+
         },
 
         /**
@@ -329,7 +329,7 @@ define('Package', function (require, module, exports) {
                     });
                 }
             }
-            else if(old.HtmlPackage) {
+            else if (old.HtmlPackage) {
                 old.HtmlPackage.unwatch();
             }
 
@@ -362,7 +362,7 @@ define('Package', function (require, module, exports) {
                 old.LessPackage.unwatch();
             }
 
-       
+
             var watcher = meta.watcher;
             if (!watcher) {
 
@@ -396,7 +396,7 @@ define('Package', function (require, module, exports) {
             pkg.compile(options.compile, function () {
 
                 pkg.minify(options.minify, function () {
-           
+
                     done && done();
 
                 });
@@ -440,8 +440,24 @@ define('Package', function (require, module, exports) {
                     return;
                 }
 
+
+                var md5 = item.md5;
+
+                if (typeof md5 != 'string') {
+                    item = JSON.stringify(item, null, 4);
+                    //console.log(item.bgMagenta);
+                    console.log(item.bgRed);
+
+                    var msg = ' item.md5 不是 string 类型。';
+                    console.log('');
+                    console.log('错误:'.bgRed, msg.bgRed, '请检查目标文件是否存在。');
+                    throw new Error(msg);
+                }
+
+
                 var href = Path.relative(htdocsDir, item.dest);
-                var md5 = item.md5.slice(0, meta.md5);
+
+                md5 = md5.slice(0, meta.md5);
 
                 if (md5) {
                     href = href + '?' + md5;
@@ -477,7 +493,7 @@ define('Package', function (require, module, exports) {
 
                 $.Object.extend(json, obj);
             });
-      
+
             File.writeJSON(dest, json, minify);
         },
     });
